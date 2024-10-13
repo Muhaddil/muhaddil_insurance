@@ -34,6 +34,32 @@ AddEventHandler("muhaddil_insurances:Notify", function(msgtitle, msg, time, type
     Notify(msgtitle, msg, time, type)
 end)
 
+function CanAccessInsurance()
+    local playerJob = nil
+
+    if Config.FrameWork == "esx" then
+        playerJob = ESX.GetPlayerData().job.name
+    elseif Config.FrameWork == "qb" then
+        playerJob = QBCore.Functions.GetPlayerData().job.name
+    end
+
+    if not Config.OnlyAllowedJobs then
+        return true
+    end
+
+    if #Config.AllowedJobs == 0 then
+        return true
+    end
+
+    for _, job in pairs(Config.AllowedJobs) do
+        if playerJob == job then
+            return true
+        end
+    end
+
+    return false
+end
+
 function TargetingBoxZone(name, coords, x, y, z, list1, list2, list3)
     exports.ox_target:addBoxZone({
         coords = vec3(coords),
@@ -64,13 +90,12 @@ CreateThread(function()
     end
 end)
 
-
 Citizen.CreateThread(function()
-    local insurancePed = nil
-    local insurancePedSpawned = false
+    local insurancePeds = {}
+    local insurancePedsSpawned = false
 
-    local function SpawnInsurancePed()
-        if insurancePedSpawned then
+    local function SpawnInsurancePeds()
+        if insurancePedsSpawned then
             return
         end
 
@@ -79,32 +104,37 @@ Citizen.CreateThread(function()
             Wait(0)
         end
 
-        local spawnPosition = vector3(Config.Locations["insurances"][1].x, Config.Locations["insurances"][1].y,
-            Config.Locations["insurances"][1].z - 1.0)
+        for _, spawnPosition in ipairs(Config.Locations["insurances"]) do
+            local heading = spawnPosition.w
 
-        insurancePed = CreatePed(4, GetHashKey("s_m_m_doctor_01"), spawnPosition.x, spawnPosition.y, spawnPosition.z,
-            Config.PedHeading, false, true)
-        SetEntityAsMissionEntity(insurancePed, true, true)
-        SetBlockingOfNonTemporaryEvents(insurancePed, true)
-        SetEntityInvincible(insurancePed, true)
-        FreezeEntityPosition(insurancePed, true)
-        SetModelAsNoLongerNeeded("s_m_m_doctor_01")
+            local insurancePed = CreatePed(4, GetHashKey("s_m_m_doctor_01"), spawnPosition.x, spawnPosition.y, spawnPosition.z - 1.0,
+                heading, false, true)
+            SetEntityAsMissionEntity(insurancePed, true, true)
+            SetBlockingOfNonTemporaryEvents(insurancePed, true)
+            SetEntityInvincible(insurancePed, true)
+            FreezeEntityPosition(insurancePed, true)
+            SetModelAsNoLongerNeeded("s_m_m_doctor_01")
 
-        insurancePedSpawned = true
+            table.insert(insurancePeds, insurancePed)
+        end
+
+        insurancePedsSpawned = true
     end
 
     while true do
         Citizen.Wait(5000)
 
-        if not insurancePedSpawned then
-            SpawnInsurancePed()
+        if not insurancePedsSpawned then
+            SpawnInsurancePeds()
         end
 
         local playerCoords = GetEntityCoords(PlayerPedId())
-        if insurancePed then
+        for _, insurancePed in ipairs(insurancePeds) do
             local insurancePedCoords = GetEntityCoords(insurancePed)
             local distance = #(playerCoords - insurancePedCoords)
-            isNearInsurancePed = distance < 2.0
+            if distance < 2.0 then
+                isNearInsurancePed = true
+            end
         end
     end
 end)
@@ -132,8 +162,12 @@ end)
 
 RegisterNetEvent('muhaddil_insurances:checkInsurance')
 AddEventHandler('muhaddil_insurances:checkInsurance', function()
-    local playerId = GetPlayerServerId(PlayerId())
-    ESX.TriggerServerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
-        openInsuranceMenu(insuranceData)
-    end, playerId)
+    if CanAccessInsurance() then
+        local playerId = GetPlayerServerId(PlayerId())
+        ESX.TriggerServerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
+            openInsuranceMenu(insuranceData)
+        end, playerId)
+    else
+        Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+    end
 end)

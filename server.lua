@@ -45,20 +45,21 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
 
     if hasEnoughMoney then
         MySQL.Async.execute(
-        'INSERT INTO user_insurances (identifier, type, expiration) VALUES (@identifier, @type, @expiration) ON DUPLICATE KEY UPDATE type = @type, expiration = @expiration',
+            'INSERT INTO user_insurances (identifier, type, expiration) VALUES (@identifier, @type, @expiration) ON DUPLICATE KEY UPDATE type = @type, expiration = @expiration',
             {
                 ['@identifier'] = identifier,
                 ['@type'] = type,
                 ['@expiration'] = expiration
             }, function(rowsChanged)
-            if rowsChanged > 0 then
-                TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
-                    'Has comprado un seguro:' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
-            else
-                TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro', 'Hubo un error al contratar el seguro',
-                    5000, 'error')
-            end
-        end)
+                if rowsChanged > 0 then
+                    TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
+                        'Has comprado un seguro:' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
+                else
+                    TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
+                        'Hubo un error al contratar el seguro',
+                        5000, 'error')
+                end
+            end)
     else
         TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
             'No tienes suficiente dinero para comprar este seguro', 5000, 'error')
@@ -149,10 +150,10 @@ local function onPlayerLoaded(playerId)
                 local newExpiration = expiration - (currentTime - os.time())
 
                 MySQL.Async.execute(
-                'UPDATE user_insurances SET expiration = @newExpiration WHERE identifier = @identifier', {
-                    ['@newExpiration'] = newExpiration,
-                    ['@identifier'] = identifier
-                })
+                    'UPDATE user_insurances SET expiration = @newExpiration WHERE identifier = @identifier', {
+                        ['@newExpiration'] = newExpiration,
+                        ['@identifier'] = identifier
+                    })
             end
         end)
     end
@@ -206,7 +207,7 @@ if Config.AutoRunSQL then
             MySQL.query.await(sql)
         end) then
         print(
-        "^1[SQL ERROR] There was an error while automatically running the required SQL. Don't worry, you just need to run the SQL file. If you've already ran the SQL code previously, and this error is annoying you, set Config.AutoRunSQL = false^0")
+            "^1[SQL ERROR] There was an error while automatically running the required SQL. Don't worry, you just need to run the SQL file. If you've already ran the SQL code previously, and this error is annoying you, set Config.AutoRunSQL = false^0")
     end
 end
 
@@ -319,7 +320,7 @@ if Config.AutoVersionChecker then
             end
         else
             printWithColor('[Muhaddil_Insurances] - Failed to check for latest version. Status code: ' .. statusCode,
-                '31')                                                                                                       -- Red
+                '31') -- Red
         end
     end, 'GET')
 end

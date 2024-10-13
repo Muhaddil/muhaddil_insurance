@@ -13,9 +13,9 @@
 
 ## Requirements
 
-- **ESX Framework** (for FiveM)  
+- **ESX Framework**
   OR  
-- **QBCore Framework** (for FiveM)
+- **QBCore Framework**
 - **SQL Database**: A properly configured SQL database to store player insurance data.
 
 ## Installation
