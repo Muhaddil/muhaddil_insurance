@@ -107,7 +107,8 @@ Citizen.CreateThread(function()
         for _, spawnPosition in ipairs(Config.Locations["insurances"]) do
             local heading = spawnPosition.w
 
-            local insurancePed = CreatePed(4, GetHashKey("s_m_m_doctor_01"), spawnPosition.x, spawnPosition.y, spawnPosition.z - 1.0,
+            local insurancePed = CreatePed(4, GetHashKey("s_m_m_doctor_01"), spawnPosition.x, spawnPosition.y,
+                spawnPosition.z - 1.0,
                 heading, false, true)
             SetEntityAsMissionEntity(insurancePed, true, true)
             SetBlockingOfNonTemporaryEvents(insurancePed, true)
@@ -141,18 +142,19 @@ end)
 
 CreateThread(function()
     if Config.ShowBlip then
-        local x, y, z = table.unpack(Config.Locations["insurances"][1])
-        local blip = AddBlipForCoord(x, y, z)
-        SetBlipSprite(blip, 408)
-        SetBlipAsShortRange(blip, true)
-        SetBlipScale(blip, 0.8)
-        SetBlipColour(blip, 0)
-        BeginTextCommandSetBlipName("STRING")
-        AddTextComponentString(Config.BlipLabel)
-        EndTextCommandSetBlipName(blip)
+        for _, location in ipairs(Config.Locations["insurances"]) do
+            local x, y, z = table.unpack(location)
+            local blip = AddBlipForCoord(x, y, z)
+            SetBlipSprite(blip, 408)
+            SetBlipAsShortRange(blip, true)
+            SetBlipScale(blip, 0.8)
+            SetBlipColour(blip, 0)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentString(Config.BlipLabel)
+            EndTextCommandSetBlipName(blip)
+        end
     end
 end)
-
 
 RegisterNetEvent('muhaddil_insurances:insurance:buy')
 AddEventHandler('muhaddil_insurances:insurance:buy', function(data)
@@ -164,9 +166,16 @@ RegisterNetEvent('muhaddil_insurances:checkInsurance')
 AddEventHandler('muhaddil_insurances:checkInsurance', function()
     if CanAccessInsurance() then
         local playerId = GetPlayerServerId(PlayerId())
-        ESX.TriggerServerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
-            openInsuranceMenu(insuranceData)
-        end, playerId)
+
+        if Config.FrameWork == "esx" then
+            ESX.TriggerServerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
+                openInsuranceMenu(insuranceData)
+            end, playerId)
+        elseif Config.FrameWork == "qb" then
+            QBCore.Functions.TriggerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
+                openInsuranceMenu(insuranceData)
+            end, playerId)
+        end
     else
         Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
     end

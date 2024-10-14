@@ -1,5 +1,5 @@
 local currentVersion = GetResourceMetadata(GetCurrentResourceName(), 'version')
-local resourceName = 'Muhaddil/FiveM-MilageVehicleFailure'
+local resourceName = 'Muhaddil/muhaddil_insurance'
 local githubApiUrl = 'https://api.github.com/repos/' .. resourceName .. '/releases/latest'
 
 if Config.FrameWork == "esx" then
@@ -11,38 +11,67 @@ end
 RegisterServerEvent('muhaddil_insurances:insurance:buy')
 AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
     local source = source
-    local xPlayer = ESX.GetPlayerFromId(source)
-    local identifier = xPlayer.identifier
+    local identifier = nil
+    local xPlayer = nil
+    local hasEnoughMoney = false
+    local currentMoney = 0
     local type = data.type
     local duration = data.duration
     local price = data.price
     local expiration = os.time() + (duration * 24 * 60 * 60)
 
-    local hasEnoughMoney = false
-    local currentMoney = 0
+    if Config.FrameWork == "esx" then
+        xPlayer = ESX.GetPlayerFromId(source)
+        identifier = xPlayer.identifier
+    elseif Config.FrameWork == "qb" then
+        xPlayer = QBCore.Functions.GetPlayer(source)
+        identifier = xPlayer.PlayerData.citizenid
+    end
 
+    -- Money checking
     if accountType == 'bank' then
-        currentMoney = xPlayer.getAccount('bank').money
-        hasEnoughMoney = currentMoney >= price
+        if Config.FrameWork == "esx" then
+            currentMoney = xPlayer.getAccount('bank').money
+            hasEnoughMoney = currentMoney >= price
 
-        if hasEnoughMoney then
-            xPlayer.removeAccountMoney('bank', price)
-            TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
-                account.addMoney(price)
-            end)
+            if hasEnoughMoney then
+                xPlayer.removeAccountMoney('bank', price)
+                TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
+                    account.addMoney(price)
+                end)
+            end
+        elseif Config.FrameWork == "qb" then
+            currentMoney = xPlayer.PlayerData.money["bank"]
+            hasEnoughMoney = currentMoney >= price
+
+            if hasEnoughMoney then
+                xPlayer.Functions.RemoveMoney('bank', price, 'Bill')
+                exports['qb-management']:AddMoney("ambulance", price)
+            end
         end
     else
-        currentMoney = xPlayer.getMoney()
-        hasEnoughMoney = currentMoney >= price
+        if Config.FrameWork == "esx" then
+            currentMoney = xPlayer.getMoney()
+            hasEnoughMoney = currentMoney >= price
 
-        if hasEnoughMoney then
-            xPlayer.removeMoney(price)
-            TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
-                account.addMoney(price)
-            end)
+            if hasEnoughMoney then
+                xPlayer.removeMoney(price)
+                TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
+                    account.addMoney(price)
+                end)
+            end
+        elseif Config.FrameWork == "qb" then
+            currentMoney = xPlayer.PlayerData.money["cash"]
+            hasEnoughMoney = currentMoney >= price
+
+            if hasEnoughMoney then
+                xPlayer.Functions.RemoveMoney('cash', price, 'Bill')
+                exports['qb-management']:AddMoney("ambulance", price)
+            end
         end
     end
 
+    -- If the player has enough money, proceed with insurance purchase
     if hasEnoughMoney then
         MySQL.Async.execute(
             'INSERT INTO user_insurances (identifier, type, expiration) VALUES (@identifier, @type, @expiration) ON DUPLICATE KEY UPDATE type = @type, expiration = @expiration',
@@ -53,11 +82,10 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
             }, function(rowsChanged)
                 if rowsChanged > 0 then
                     TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
-                        'Has comprado un seguro:' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
+                        'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
                 else
                     TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
-                        'Hubo un error al contratar el seguro',
-                        5000, 'error')
+                        'Hubo un error al contratar el seguro', 5000, 'error')
                 end
             end)
     else
@@ -297,7 +325,7 @@ if Config.AutoVersionChecker then
 
 
                 local boxWidth = 54
-                local boxWidthNotes = 55
+                local boxWidthNotes = 54
 
                 if latestVersion ~= currentVersion then
                     print('╭────────────────────────────────────────────────────╮')
@@ -320,6 +348,8 @@ if Config.AutoVersionChecker then
             end
         else
             printWithColor('[Muhaddil_Insurances] - Failed to check for latest version. Status code: ' .. statusCode,
+                '31') -- Red
+            printWithColor('[Muhaddil_Insurances] - GitHub might be having issues',
                 '31') -- Red
         end
     end, 'GET')
