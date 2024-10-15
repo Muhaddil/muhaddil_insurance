@@ -15,6 +15,7 @@ Config.OnlyAllowedJobs = false -- Enable or disable restricted access to the ins
 Config.AllowedJobs = {"ambulance", "police", "safd"} -- List of allowed jobs. Only these jobs can access the insurance menu when 'OnlyAllowedJobs' is set to true.
 Config.DiscountJobs = { "ambulance" } -- List of jobs that are allowed to sell insurance at a discounted rate.
 Config.UseDiscounts = true -- Setting this to true allows players (with specified jobs) to sell insurance at a discounted rate.
+Config.CheckInsuranceCommandJob =  {"ambulance" }
 
 Config.BlipLabel = 'Seguros Médicos' -- The label displayed for the blip on the map, indicating the location of medical insurance services.
 Config.ShowBlip = true -- Enable or disable the display of the blip on the map. If 'true', the blip will be shown; if 'false', it will be hidden.

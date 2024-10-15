@@ -162,6 +162,51 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data)
     TriggerServerEvent('muhaddil_insurances:insurance:buy', data, accountType)
 end)
 
+RegisterCommand('checkInsurance', function()
+    local playerId = GetPlayerServerId(PlayerId())
+    local jobName = nil
+
+    local allowedJobs = Config.CheckInsuranceCommandJob
+
+    if Config.FrameWork == "esx" then
+        ESX.TriggerServerCallback('esx:getPlayerData', function(playerData)
+            jobName = playerData.job.name
+            local hasAccess = false
+
+            for _, job in ipairs(allowedJobs) do
+                if job == jobName then
+                    hasAccess = true
+                    break
+                end
+            end
+
+            if hasAccess then
+                TriggerEvent('muhaddil_insurances:checkInsurance')
+            else
+                Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+            end
+        end, playerId)
+    elseif Config.FrameWork == "qb" then
+        local PlayerData = QBCore.Functions.GetPlayerData()
+        jobName = PlayerData.job.name
+        local hasAccess = false
+
+        for _, job in ipairs(allowedJobs) do
+            if job == jobName then
+                hasAccess = true
+                break
+            end
+        end
+
+        if hasAccess then
+            TriggerEvent('muhaddil_insurances:checkInsurance')
+        else
+            Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+        end
+    end
+end)
+
+
 RegisterNetEvent('muhaddil_insurances:checkInsurance')
 AddEventHandler('muhaddil_insurances:checkInsurance', function()
     if CanAccessInsurance() then
@@ -201,7 +246,7 @@ function CanSellDiscountInsurance()
                 return true
             end
         end
-        
+
         return false
     end
 end
