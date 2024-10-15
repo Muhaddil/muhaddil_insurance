@@ -9,7 +9,7 @@ elseif Config.FrameWork == "qb" then
 end
 
 RegisterServerEvent('muhaddil_insurances:insurance:buy')
-AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
+AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType, targetPlayerId)
     local source = source
     local identifier = nil
     local xPlayer = nil
@@ -20,11 +20,13 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
     local price = data.price
     local expiration = os.time() + (duration * 24 * 60 * 60)
 
+    local playerId = targetPlayerId or source
+
     if Config.FrameWork == "esx" then
-        xPlayer = ESX.GetPlayerFromId(source)
+        xPlayer = ESX.GetPlayerFromId(playerId)
         identifier = xPlayer.identifier
     elseif Config.FrameWork == "qb" then
-        xPlayer = QBCore.Functions.GetPlayer(source)
+        xPlayer = QBCore.Functions.GetPlayer(playerId)
         identifier = xPlayer.PlayerData.citizenid
     end
 
@@ -81,15 +83,15 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType)
                 ['@expiration'] = expiration
             }, function(rowsChanged)
                 if rowsChanged > 0 then
-                    TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
+                    TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
                 else
-                    TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
+                    TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Hubo un error al contratar el seguro', 5000, 'error')
                 end
             end)
     else
-        TriggerClientEvent('muhaddil_insurances:Notify', source, 'Seguro',
+        TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
             'No tienes suficiente dinero para comprar este seguro', 5000, 'error')
     end
 end)

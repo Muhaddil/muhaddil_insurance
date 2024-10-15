@@ -13,6 +13,8 @@ Config.UseOXNotifications = true -- Enable or disable OX Notifications. If 'true
 Config.Account = 'money' -- Choose the account type for transactions: 'bank' to use the player's bank account or 'money' to use cash.
 Config.OnlyAllowedJobs = false -- Enable or disable restricted access to the insurance menu. If 'true', only specific jobs can access. If 'false', everyone can access.
 Config.AllowedJobs = {"ambulance", "police", "safd"} -- List of allowed jobs. Only these jobs can access the insurance menu when 'OnlyAllowedJobs' is set to true.
+Config.DiscountJobs = { "ambulance" } -- List of jobs that are allowed to sell insurance at a discounted rate.
+Config.UseDiscounts = true -- Setting this to true allows players (with specified jobs) to sell insurance at a discounted rate.
 
 Config.BlipLabel = 'Seguros Médicos' -- The label displayed for the blip on the map, indicating the location of medical insurance services.
 Config.ShowBlip = true -- Enable or disable the display of the blip on the map. If 'true', the blip will be shown; if 'false', it will be hidden.
@@ -71,6 +73,15 @@ function openInsuranceMenu(insuranceData)
             event = 'muhaddil_insurances:insurance:buy',
             args = { type = "premium", duration = 30, price = 100000 } -- Arguments for the event.
         })
+        if CanSellDiscountInsurance() then
+            table.insert(options, {
+                title = 'Vender Seguro con Descuento',
+                description = 'Duración: 30 días\nPrecio: $50000 (descuento)',
+                icon = 'circle',
+                event = 'muhaddil_insurances:insurance:buyDiscount',
+                args = { type = "premium", duration = 30, price = 50000 }
+            })
+        end
     end
 
     lib.registerContext({

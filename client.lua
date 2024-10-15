@@ -180,3 +180,71 @@ AddEventHandler('muhaddil_insurances:checkInsurance', function()
         Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
     end
 end)
+
+function CanSellDiscountInsurance()
+    if hasUsedDiscount then
+        return false
+    end
+
+    if Config.UseDiscounts == false then
+        return false
+    else
+        local playerJob = nil
+        if Config.FrameWork == "esx" then
+            playerJob = ESX.GetPlayerData().job.name
+        elseif Config.FrameWork == "qb" then
+            playerJob = QBCore.Functions.GetPlayerData().job.name
+        end
+
+        for _, job in ipairs(Config.DiscountJobs) do
+            if playerJob == job then
+                return true
+            end
+        end
+        
+        return false
+    end
+end
+
+function GetClosestPlayer()
+    local players = GetActivePlayers()
+    local closestDistance = -1
+    local closestPlayer = -1
+    local playerPed = PlayerPedId()
+    local playerCoords = GetEntityCoords(playerPed)
+
+    for i = 1, #players do
+        local target = GetPlayerPed(players[i])
+        if target ~= playerPed then
+            local targetCoords = GetEntityCoords(target)
+            local distance = #(playerCoords - targetCoords)
+
+            if closestDistance == -1 or distance < closestDistance then
+                closestPlayer = players[i]
+                closestDistance = distance
+            end
+        end
+    end
+
+    return closestPlayer, closestDistance
+end
+
+RegisterNetEvent('muhaddil_insurances:insurance:buyDiscount')
+AddEventHandler('muhaddil_insurances:insurance:buyDiscount', function(data)
+    if not hasUsedDiscount then
+        local closestPlayer, closestDistance = GetClosestPlayer()
+
+        if closestPlayer ~= -1 and closestDistance <= 3.0 then
+            local targetPlayerId = GetPlayerServerId(closestPlayer)
+            local accountType = Config.Account
+
+            TriggerServerEvent('muhaddil_insurances:insurance:buy', data, accountType, targetPlayerId)
+            hasUsedDiscount = true
+            Notify("Descuento aplicado", "Has vendido un seguro con descuento al jugador más cercano.", 5000, "success")
+        else
+            Notify("Error", "No hay ningún jugador cerca para aplicar el descuento.", 5000, "error")
+        end
+    else
+        Notify("Descuento ya utilizado", "Ya has usado el descuento para esta sesión.", 5000, "error")
+    end
+end)
