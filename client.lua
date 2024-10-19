@@ -79,7 +79,7 @@ end
 
 CreateThread(function()
     for k, v in pairs(Config.Locations["insurances"]) do
-        TargetingBoxZone("insurances" .. k, v, Config.ZoneSize, Config.ZoneHeight, Config.ZoneDepth,
+        TargetingBoxZone("insurances" .. k, v, 3.5, 2, 2,
             {
                 type = "client",
                 icon = Config.TargetIcon,

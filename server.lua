@@ -223,6 +223,7 @@ end
 Citizen.CreateThread(function()
     while true do
         Wait(Config.PeriodicallyDeleteInsurance)
+        print('Limpieza de seguros expirados.')
         cleanExpiredInsurances()
     end
 end)

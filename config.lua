@@ -18,23 +18,20 @@ Config.UseDiscounts = true -- Setting this to true allows players (with specifie
 Config.CheckInsuranceCommandJob =  { "ambulance" } -- List of jobs allowed to use the command to check insurance status.
 Config.DiscountInteractionDistance = '3.0' -- The maximum distance at which players can interact with another player to apply discounts.
 
-Config.PeriodicallyDeleteInsurance = '3600000' -- The interval (in milliseconds) at which expired insurances will be cleaned from the database.
+Config.PeriodicallyDeleteInsurance = 3600000 -- The interval (in milliseconds) at which expired insurances will be cleaned from the database.
 
 Config.TargetIcon = 'fa fa-clipboard' -- The icon used for the targeting box when interacting with insurance locations.
 Config.ZoneLabel = 'Seguros Médicos' -- The label displayed for the insurance interaction zone.
-Config.ZoneSize = '3.5' -- The size of the interaction zone for ox_target.
-Config.ZoneHeight = '2' -- The height of the interaction zone for ox_target.
-Config.ZoneDepth = '2' -- The depth of the interaction zone for ox_target.
 
-Config.PedModel = 's_m_m_doctor_01' -- The model used for the insurance NPCs.
-Config.PedSpawnCheckInterval = '5000' -- The interval (in milliseconds) at which the script checks if insurance NPCs need to be spawned.
-Config.PedInteractionDistance = '2.0' -- The distance at which players can interact with the insurance NPCs.
+Config.PedModel = "s_m_m_doctor_01" -- The model used for the insurance NPCs.
+Config.PedSpawnCheckInterval = 5000 -- The interval (in milliseconds) at which the script checks if insurance NPCs need to be spawned.
+Config.PedInteractionDistance = 2.0 -- The distance at which players can interact with the insurance NPCs.
 
 Config.BlipLabel = 'Seguros Médicos' -- The label displayed for the blip on the map, indicating the location of medical insurance services.
 Config.ShowBlip = true -- Enable or disable the display of the blip on the map. If 'true', the blip will be shown; if 'false', it will be hidden.
-Config.BlipSprite = '408' -- The sprite ID for the blip, determining its appearance on the map.
-Config.BlipScale = '0.8' -- The scale of the blip on the map.
-Config.BlipColour = '0' -- The color of the blip on the map.
+Config.BlipSprite = 408 -- The sprite ID for the blip, determining its appearance on the map.
+Config.BlipScale = 0.8 -- The scale of the blip on the map.
+Config.BlipColour = 0 -- The color of the blip on the map.
 
 Config.AccessDeniedTitle = 'Acceso Denegado' -- The title displayed in notifications when access to a feature is denied.
 Config.AccessDeniedMessage = 'No tienes el trabajo adecuado para acceder a esta función.' -- The message displayed in notifications when access to a feature is denied.
