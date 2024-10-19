@@ -79,12 +79,12 @@ end
 
 CreateThread(function()
     for k, v in pairs(Config.Locations["insurances"]) do
-        TargetingBoxZone("insurances" .. k, v, 3.5, 2, 2,
+        TargetingBoxZone("insurances" .. k, v, Config.ZoneSize, Config.ZoneHeight, Config.ZoneDepth,
             {
                 type = "client",
-                icon = "fa fa-clipboard",
+                icon = Config.TargetIcon,
                 event = "muhaddil_insurances:checkInsurance",
-                label = 'Seguros Médicos',
+                label = Config.ZoneLabel or 'Seguros Médicos',
             }
         )
     end
@@ -99,22 +99,22 @@ Citizen.CreateThread(function()
             return
         end
 
-        RequestModel("s_m_m_doctor_01")
-        while not HasModelLoaded("s_m_m_doctor_01") do
+        RequestModel(Config.PedModel)
+        while not HasModelLoaded(Config.PedModel) do
             Wait(0)
         end
 
         for _, spawnPosition in ipairs(Config.Locations["insurances"]) do
             local heading = spawnPosition.w
 
-            local insurancePed = CreatePed(4, GetHashKey("s_m_m_doctor_01"), spawnPosition.x, spawnPosition.y,
+            local insurancePed = CreatePed(4, GetHashKey(Config.PedModel), spawnPosition.x, spawnPosition.y,
                 spawnPosition.z - 1.0,
                 heading, false, true)
             SetEntityAsMissionEntity(insurancePed, true, true)
             SetBlockingOfNonTemporaryEvents(insurancePed, true)
             SetEntityInvincible(insurancePed, true)
             FreezeEntityPosition(insurancePed, true)
-            SetModelAsNoLongerNeeded("s_m_m_doctor_01")
+            SetModelAsNoLongerNeeded(Config.PedModel)
 
             table.insert(insurancePeds, insurancePed)
         end
@@ -123,7 +123,7 @@ Citizen.CreateThread(function()
     end
 
     while true do
-        Citizen.Wait(5000)
+        Citizen.Wait(Config.PedSpawnCheckInterval)
 
         if not insurancePedsSpawned then
             SpawnInsurancePeds()
@@ -133,7 +133,7 @@ Citizen.CreateThread(function()
         for _, insurancePed in ipairs(insurancePeds) do
             local insurancePedCoords = GetEntityCoords(insurancePed)
             local distance = #(playerCoords - insurancePedCoords)
-            if distance < 2.0 then
+            if distance < Config.PedInteractionDistance then
                 isNearInsurancePed = true
             end
         end
@@ -145,10 +145,10 @@ CreateThread(function()
         for _, location in ipairs(Config.Locations["insurances"]) do
             local x, y, z = table.unpack(location)
             local blip = AddBlipForCoord(x, y, z)
-            SetBlipSprite(blip, 408)
+            SetBlipSprite(blip, Config.BlipSprite)
             SetBlipAsShortRange(blip, true)
-            SetBlipScale(blip, 0.8)
-            SetBlipColour(blip, 0)
+            SetBlipScale(blip, Config.BlipScale)
+            SetBlipColour(blip, Config.BlipColour)
             BeginTextCommandSetBlipName("STRING")
             AddTextComponentString(Config.BlipLabel)
             EndTextCommandSetBlipName(blip)
@@ -183,7 +183,7 @@ RegisterCommand('checkInsurance', function()
             if hasAccess then
                 TriggerEvent('muhaddil_insurances:checkInsurance')
             else
-                Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+                Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
             end
         end, playerId)
     elseif Config.FrameWork == "qb" then
@@ -201,11 +201,10 @@ RegisterCommand('checkInsurance', function()
         if hasAccess then
             TriggerEvent('muhaddil_insurances:checkInsurance')
         else
-            Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+            Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
         end
     end
 end)
-
 
 RegisterNetEvent('muhaddil_insurances:checkInsurance')
 AddEventHandler('muhaddil_insurances:checkInsurance', function()
@@ -222,7 +221,7 @@ AddEventHandler('muhaddil_insurances:checkInsurance', function()
             end, playerId)
         end
     else
-        Notify("Acceso denegado", "No tienes el trabajo adecuado para acceder a esta función.", 5000, "error")
+        Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
     end
 end)
 
@@ -279,17 +278,17 @@ AddEventHandler('muhaddil_insurances:insurance:buyDiscount', function(data)
     if not hasUsedDiscount then
         local closestPlayer, closestDistance = GetClosestPlayer()
 
-        if closestPlayer ~= -1 and closestDistance <= 3.0 then
+        if closestPlayer ~= -1 and closestDistance <= Config.DiscountInteractionDistance then
             local targetPlayerId = GetPlayerServerId(closestPlayer)
             local accountType = Config.Account
 
             TriggerServerEvent('muhaddil_insurances:insurance:buy', data, accountType, targetPlayerId)
             hasUsedDiscount = true
-            Notify("Descuento aplicado", "Has vendido un seguro con descuento al jugador más cercano.", 5000, "success")
+            Notify(Config.DiscountAppliedTitle, Config.DiscountAppliedMessage, Config.NotificationDuration, "success")
         else
-            Notify("Error", "No hay ningún jugador cerca para aplicar el descuento.", 5000, "error")
+            Notify(Config.ErrorTitle, Config.NoPlayerNearbyMessage, Config.NotificationDuration, "error")
         end
     else
-        Notify("Descuento ya utilizado", "Ya has usado el descuento para esta sesión.", 5000, "error")
+        Notify(Config.DiscountAlreadyUsedTitle, Config.DiscountAlreadyUsedMessage, Config.NotificationDuration, "error")
     end
 end)

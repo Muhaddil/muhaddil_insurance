@@ -222,7 +222,7 @@ end
 
 Citizen.CreateThread(function()
     while true do
-        Wait(3600000)
+        Wait(Config.PeriodicallyDeleteInsurance)
         cleanExpiredInsurances()
     end
 end)
