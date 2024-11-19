@@ -63,20 +63,50 @@ function CanAccessInsurance()
 end
 
 function TargetingBoxZone(name, coords, x, y, z, list1, list2, list3)
-    exports.ox_target:addBoxZone({
-        coords = vec3(coords),
-        size = vec3(x, y, z),
-        rotation = 0,
-        debug = false,
-        drawSprite = true,
-        options = {
-            list1,
+    if not coords or (not coords.x and not coords.z) then
+        print("Error: coordenadas no definidas o incorrectas.")
+        return
+    end
 
-            list2,
+    local adjustedCoords = coords
 
-            list3,
-        }
-    })
+    if coords.w then
+        adjustedCoords = vector3(coords.x, coords.y, coords.z - 1)
+    else
+        adjustedCoords = vector3(coords.x, coords.y, coords.z - 1)
+    end
+
+    if Config.UseOxTarget then
+        exports.ox_target:addBoxZone({
+            coords = vec3(coords),
+            size = vec3(x, y, z),
+            rotation = 0,
+            debug = false,
+            drawSprite = true,
+            options = {
+                list1,
+
+                list2,
+
+                list3,
+            }
+        })
+    else
+        exports[Config.TargetName]:AddBoxZone(name, adjustedCoords, x, y, {
+            name = name,
+            heading = 0,
+            debugPoly = false,
+            minZ = adjustedCoords.z - (z / 2),
+            maxZ = adjustedCoords.z + (z / 2),
+        }, {
+            options = {
+                list1,
+                list2,
+                list3,
+            },
+            distance = Config.TargetDistance
+        })
+    end
 end
 
 CreateThread(function()

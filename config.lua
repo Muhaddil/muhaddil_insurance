@@ -9,6 +9,9 @@ Config.Locations = {
 
 Config.FrameWork = 'esx' -- Select the framework being used: 'esx' for ESX Framework or 'qb' for QBCore Framework.
 Config.UseOXNotifications = true -- Enable or disable OX Notifications. If 'true', it will use OX notifications; otherwise, it will use the default notification system for the framework.
+Config.UseOxTarget = true  -- Enables or disables the use of the OxTarget system.
+Config.TargetName = ''  -- Specifies the name of the target resource. Only needed if using qb-target or qtarget. Leave it empty if using OxTarget.
+Config.TargetDistance = 7.0  -- Sets the maximum interaction distance for targeting.
 
 Config.Account = 'money' -- Choose the account type for transactions: 'bank' to use the player's bank account or 'money' to use cash.
 Config.OnlyAllowedJobs = false -- Enable or disable restricted access to the insurance menu. If 'true', only specific jobs can access. If 'false', everyone can access.
