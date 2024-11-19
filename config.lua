@@ -48,59 +48,57 @@ Config.AutoVersionChecker = true -- Enable or disable the automatic version chec
 
 
 -- Edit this function to suit your requirements
-
 function openInsuranceMenu(insuranceData)
     local options = {}
 
     if insuranceData then
-        -- If the player has insurance, display the current insurance details.
+        -- Si el jugador tiene un seguro, mostrar los detalles del seguro actual.
         table.insert(options, {
-            title = 'Seguro Actual', -- Title for the current insurance option.
-            description = 'Tipo: ' .. insuranceData.type .. '\nTiempo restante: ' .. insuranceData.timeLeft, -- Description of current insurance.
+            title = locale('current_insurance'),
+            description = locale('insurance_type') .. ': ' .. insuranceData.type .. '\n' .. locale('time_left') .. ': ' .. insuranceData.timeLeft,
             icon = 'info-circle',
-            disabled = false -- Option is enabled since the player has insurance.
+            disabled = false -- La opción está habilitada ya que el jugador tiene seguro.
         })
-    else -- If the player does not have insurance.
-        -- Notify the player that they currently have no insurance.
+    else -- Si el jugador no tiene seguro.
+        -- Notificar al jugador que actualmente no tiene seguro.
         table.insert(options, {
-            title = 'No tienes seguro actualmente', -- Title for the no insurance option.
+            title = locale('no_current_insurance'),
             icon = 'info-circle',
-            disabled = true -- Option is disabled since the player has no insurance.
+            disabled = true -- La opción está deshabilitada ya que el jugador no tiene seguro.
         })
 
-        -- Add different insurance options for purchase.
         table.insert(options, {
-            title = 'Seguro Básico', -- Title for Basic Insurance.
-            description = 'Duración: 3 días\nPrecio: $10000', -- Description of Basic Insurance.
+            title = locale('basic_insurance'),
+            description = locale('duration') .. ': 3 ' .. locale('days') .. '\n' .. locale('price') .. ': $10000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "basico", duration = 3, price = 10000 } -- Arguments for the event.
+            args = { type = "basico", duration = 3, price = 10000 } -- Argumentos para el evento.
         })
         table.insert(options, {
-            title = 'Seguro Semanal', -- Title for Weekly Insurance.
-            description = 'Duración: 7 días\nPrecio: $25000', -- Description of Weekly Insurance.
+            title = locale('weekly_insurance'),
+            description = locale('duration') .. ': 7 ' .. locale('days') .. '\n' .. locale('price') .. ': $25000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "semanal", duration = 7, price = 25000 } -- Arguments for the event.
+            args = { type = "semanal", duration = 7, price = 25000 } -- Argumentos para el evento.
         })
         table.insert(options, {
-            title = 'Seguro Completo', -- Title for Full Insurance.
-            description = 'Duración: 15 días\nPrecio: $50000', -- Description of Full Insurance.
+            title = locale('full_insurance'),
+            description = locale('duration') .. ': 15 ' .. locale('days') .. '\n' .. locale('price') .. ': $50000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "completo", duration = 15, price = 50000 } -- Arguments for the event.
+            args = { type = "completo", duration = 15, price = 50000 } -- Argumentos para el evento.
         })
         table.insert(options, {
-            title = 'Seguro Premium', -- Title for Premium Insurance.
-            description = 'Duración: 30 días\nPrecio: $100000', -- Description of Premium Insurance.
+            title = locale('premium_insurance'),
+            description = locale('duration') .. ': 30 ' .. locale('days') .. '\n' .. locale('price') .. ': $100000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "premium", duration = 30, price = 100000 } -- Arguments for the event.
+            args = { type = "premium", duration = 30, price = 100000 } -- Argumentos para el evento.
         })
         if CanSellDiscountInsurance() then
             table.insert(options, {
-                title = 'Vender Seguro con Descuento',
-                description = 'Duración: 30 días\nPrecio: $50000 (descuento)',
+                title = locale('sell_discount_insurance'),
+                description = locale('duration') .. ': 30 ' .. locale('days') .. '\n' .. locale('price') .. ': $50000 (' .. locale('discount') .. ')',
                 icon = 'circle',
                 event = 'muhaddil_insurances:insurance:buyDiscount',
                 args = { type = "premium", duration = 30, price = 50000 }
@@ -110,9 +108,33 @@ function openInsuranceMenu(insuranceData)
 
     lib.registerContext({
         id = 'insurance_menu',
-        title = 'Menú de Seguros', -- Title of the menu.
+        title = locale('insurance_menu_title'),
         options = options
     })
 
     lib.showContext('insurance_menu')
 end
+
+function openSellInsurance()
+    local options = {}
+
+    table.insert(options, {
+        title = locale('sell_custom_insurance'),
+        description = locale('custom_insurance_description'),
+        icon = 'circle',
+        event = 'muhaddil_insurances:insurance:customPrice'
+    })
+
+    lib.registerContext({
+        id = 'insurance_menu_sell',
+        title = locale('insurance_menu_title'),
+        options = options
+    })
+
+    lib.showContext('insurance_menu_sell')
+end
+
+Config.EnableSellCommand = true
+Config.CanSellInsuraceToHimself = true
+Config.SellInsuraceRange = 5.0
+Config.SellInsuraceMaxDays = 30

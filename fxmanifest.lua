@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Muhaddil'
 description 'Simple Medical Insurance Script'
-version 'v1.0.4'
+version 'v1.0.5'
 
 shared_script 'config.lua'
 client_script 'client.lua'
@@ -14,3 +14,7 @@ server_script {
 }
 
 shared_script '@ox_lib/init.lua'
+
+files {
+    'locales/*.json'
+}

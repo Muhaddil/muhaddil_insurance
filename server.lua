@@ -357,3 +357,52 @@ if Config.AutoVersionChecker then
         end
     end, 'GET')
 end
+
+exports("hasValidInsurance", function(playerId)
+    local Player
+    local identifier
+
+    if not playerId then
+        playerId = source
+    end
+
+    if Config.FrameWork == "esx" then
+        Player = ESX.GetPlayerFromId(playerId)
+        if Player then
+            identifier = Player.getIdentifier()
+        end
+    elseif Config.FrameWork == "qb" then
+        Player = QBCore.Functions.GetPlayer(playerId)
+        if Player then
+            identifier = Player.PlayerData.license
+        end
+    end
+
+    if identifier then
+        local promise = promise.new()
+        MySQL.Async.fetchScalar('SELECT COUNT(*) FROM user_insurances WHERE identifier = @identifier', {
+            ['@identifier'] = identifier
+        }, function(result)
+            if result > 0 then
+                promise:resolve(true)
+            else
+                promise:resolve(false)
+            end
+        end)
+        return Citizen.Await(promise)
+    else
+        return false
+    end
+end)
+
+RegisterNetEvent('muhaddil_insurance:syncInsuranceStatus', function(playerId)
+    local hasInsurance = exports['muhaddil_insurance']:hasValidInsurance(playerId)
+    TriggerClientEvent('muhaddil_insurance:updateInsuranceStatus', playerId, hasInsurance)
+end)
+
+RegisterNetEvent('muhaddil_insurance:checkInsuranceExport', function()
+    local playerId = source
+    local hasInsurance = exports['muhaddil_insurance']:hasValidInsurance(playerId)
+
+    TriggerClientEvent('muhaddil_insurance:insuranceResult', playerId, hasInsurance)
+end)

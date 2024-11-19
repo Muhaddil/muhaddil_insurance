@@ -4,6 +4,8 @@ elseif Config.FrameWork == "qb" then
     QBCore = exports['qb-core']:GetCoreObject()
 end
 
+lib.locale()
+
 function Notify(msgtitle, msg, time, type2)
     if Config.UseOXNotifications then
         lib.notify({
@@ -291,4 +293,112 @@ AddEventHandler('muhaddil_insurances:insurance:buyDiscount', function(data)
     else
         Notify(Config.DiscountAlreadyUsedTitle, Config.DiscountAlreadyUsedMessage, Config.NotificationDuration, "error")
     end
+end)
+
+RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
+    local nearbyPlayers = lib.getNearbyPlayers(GetEntityCoords(PlayerPedId()), Config.SellInsuraceRange, Config.CanSellInsuraceToHimself)
+
+    if not nearbyPlayers or #nearbyPlayers == 0 then
+        print(locale('no_nearby_players'))
+        return
+    end
+
+    local playerOptions = {}
+    for _, player in ipairs(nearbyPlayers) do
+        local serverId = GetPlayerServerId(player.id)
+        table.insert(playerOptions, {
+            value = serverId,
+            label = locale('select_nearby_player_label') .. ': ' .. serverId
+        })
+    end
+
+    local selectPlayer = lib.inputDialog(locale('select_nearby_player'), {
+        {type = 'select', label = locale('select_nearby_player_label'), options = playerOptions, required = true}
+    })
+
+    if not selectPlayer then return end
+
+    local targetPlayerId = selectPlayer[1]
+
+    local input = lib.inputDialog(locale('configure_custom_insurance'), {
+        {type = 'input', label = locale('insurance_type'), description = locale('insurance_type_description'), required = true},
+        {type = 'number', label = locale('insurance_duration'), description = locale('insurance_duration_description'), required = true, min = 1, max = Config.SellInsuraceMaxDays},
+        {type = 'number', label = locale('insurance_price'), description = locale('insurance_price_description'), required = true, min = 1}
+    })
+
+    if not input then return end
+
+    local insuranceType = input[1]
+    local duration = tonumber(input[2])
+    local price = tonumber(input[3])
+
+    if not insuranceType or duration <= 0 or price <= 0 then
+            print(locale('invalid_data'))
+        return
+    end
+
+    local accountType = Config.Account
+    TriggerServerEvent('muhaddil_insurances:insurance:buy', {
+        type = insuranceType,
+        duration = duration,
+        price = price
+    }, accountType, targetPlayerId)
+end)
+
+if Config.EnableSellCommand then
+    RegisterCommand('sellinsurances', function()
+        local playerId = GetPlayerServerId(PlayerId())
+        local jobName = nil
+
+        local allowedJobs = Config.CheckInsuranceCommandJob
+
+        if Config.FrameWork == "esx" then
+            ESX.TriggerServerCallback('esx:getPlayerData', function(playerData)
+                jobName = playerData.job.name
+                local hasAccess = false
+
+                for _, job in ipairs(allowedJobs) do
+                    if job == jobName then
+                        hasAccess = true
+                        break
+                    end
+                end
+
+                if hasAccess then
+                    openSellInsurance()
+                else
+                    Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+                end
+            end, playerId)
+        elseif Config.FrameWork == "qb" then
+            local PlayerData = QBCore.Functions.GetPlayerData()
+            jobName = PlayerData.job.name
+            local hasAccess = false
+
+            for _, job in ipairs(allowedJobs) do
+                if job == jobName then
+                    hasAccess = true
+                    break
+                end
+            end
+
+            if hasAccess then
+                openSellInsurance()
+            else
+                Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+            end
+        end
+    end)
+end
+
+exports("hasValidInsurance", function()
+    local promise = promise.new()
+
+    TriggerServerEvent('muhaddil_insurance:checkInsuranceExport')
+
+    RegisterNetEvent('muhaddil_insurance:insuranceResult', function(result)
+        promise:resolve(result)
+    end)
+
+    return Citizen.Await(promise)
 end)
