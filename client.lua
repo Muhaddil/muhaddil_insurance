@@ -378,47 +378,47 @@ end)
 if Config.EnableSellCommand then
     RegisterCommand('sellinsurances', function()
         local playerId = GetPlayerServerId(PlayerId())
-        local jobName = nil
-
-        local allowedJobs = Config.CheckInsuranceCommandJob
+        local jobName, jobGrade = nil, nil
+        local allowedJobs = Config.SellCommandJobs
 
         if Config.FrameWork == "esx" then
             ESX.TriggerServerCallback('esx:getPlayerData', function(playerData)
                 jobName = playerData.job.name
-                local hasAccess = false
-
-                for _, job in ipairs(allowedJobs) do
-                    if job == jobName then
-                        hasAccess = true
-                        break
-                    end
-                end
-
-                if hasAccess then
-                    openSellInsurance()
-                else
-                    Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
-                end
+                jobGrade = playerData.job.grade
+                validateSellAccess(jobName, jobGrade)
             end, playerId)
         elseif Config.FrameWork == "qb" then
             local PlayerData = QBCore.Functions.GetPlayerData()
             jobName = PlayerData.job.name
-            local hasAccess = false
+            jobGrade = PlayerData.job.grade.level
+            validateSellAccess(jobName, jobGrade)
+        end
+    end)
+end
 
-            for _, job in ipairs(allowedJobs) do
-                if job == jobName then
+function validateSellAccess(jobName, jobGrade)
+    local hasAccess = false
+
+    if Config.EnableSellCommandToAllGrades then
+        hasAccess = Config.SellCommandJobs[jobName] ~= nil
+    else
+        local allowedGrades = Config.SellCommandJobs[jobName]
+
+        if allowedGrades then
+            for _, grade in ipairs(allowedGrades) do
+                if grade == -1 or grade == jobGrade then
                     hasAccess = true
                     break
                 end
             end
-
-            if hasAccess then
-                openSellInsurance()
-            else
-                Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
-            end
         end
-    end)
+    end
+
+    if hasAccess then
+        openSellInsurance()
+    else
+        Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+    end
 end
 
 exports("hasValidInsurance", function()

@@ -21,7 +21,7 @@ Config.UseDiscounts = true -- Setting this to true allows players (with specifie
 Config.CheckInsuranceCommandJob =  { "ambulance" } -- List of jobs allowed to use the command to check insurance status.
 Config.DiscountInteractionDistance = '3.0' -- The maximum distance at which players can interact with another player to apply discounts.
 
-Config.PeriodicallyDeleteInsurance = 3600000 -- The interval (in milliseconds) at which expired insurances will be cleaned from the database.
+Config.PeriodicallyDeleteInsurance = 120 -- The interval (in minutes) at which expired insurances will be cleaned from the database.
 
 Config.TargetIcon = 'fa fa-clipboard' -- The icon used for the targeting box when interacting with insurance locations.
 Config.ZoneLabel = 'Seguros Médicos' -- The label displayed for the insurance interaction zone.
@@ -55,19 +55,19 @@ function openInsuranceMenu(insuranceData)
     local options = {}
 
     if insuranceData then
-        -- Si el jugador tiene un seguro, mostrar los detalles del seguro actual.
+        -- If the player has insurance, display the current insurance details.
         table.insert(options, {
             title = locale('current_insurance'),
             description = locale('insurance_type') .. ': ' .. insuranceData.type .. '\n' .. locale('time_left') .. ': ' .. insuranceData.timeLeft,
             icon = 'info-circle',
-            disabled = false -- La opción está habilitada ya que el jugador tiene seguro.
+            disabled = false --The option is enabled since the player has insurance.
         })
-    else -- Si el jugador no tiene seguro.
-        -- Notificar al jugador que actualmente no tiene seguro.
+    else -- If the player does not have insurance.
+        -- Notify the player that he or she currently has no insurance.
         table.insert(options, {
             title = locale('no_current_insurance'),
             icon = 'info-circle',
-            disabled = true -- La opción está deshabilitada ya que el jugador no tiene seguro.
+            disabled = true --The option is disabled since the player does not have insurance.
         })
 
         table.insert(options, {
@@ -75,28 +75,28 @@ function openInsuranceMenu(insuranceData)
             description = locale('duration') .. ': 3 ' .. locale('days') .. '\n' .. locale('price') .. ': $10000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "basico", duration = 3, price = 10000 } -- Argumentos para el evento.
+            args = { type = "basico", duration = 3, price = 10000 } -- Arguments for the event.
         })
         table.insert(options, {
             title = locale('weekly_insurance'),
             description = locale('duration') .. ': 7 ' .. locale('days') .. '\n' .. locale('price') .. ': $25000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "semanal", duration = 7, price = 25000 } -- Argumentos para el evento.
+            args = { type = "semanal", duration = 7, price = 25000 } -- Arguments for the event.
         })
         table.insert(options, {
             title = locale('full_insurance'),
             description = locale('duration') .. ': 15 ' .. locale('days') .. '\n' .. locale('price') .. ': $50000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "completo", duration = 15, price = 50000 } -- Argumentos para el evento.
+            args = { type = "completo", duration = 15, price = 50000 } -- Arguments for the event.
         })
         table.insert(options, {
             title = locale('premium_insurance'),
             description = locale('duration') .. ': 30 ' .. locale('days') .. '\n' .. locale('price') .. ': $100000',
             icon = 'circle',
             event = 'muhaddil_insurances:insurance:buy',
-            args = { type = "premium", duration = 30, price = 100000 } -- Argumentos para el evento.
+            args = { type = "premium", duration = 30, price = 100000 } -- Arguments for the event.
         })
         if CanSellDiscountInsurance() then
             table.insert(options, {
@@ -141,3 +141,7 @@ Config.EnableSellCommand = true
 Config.CanSellInsuraceToHimself = true
 Config.SellInsuraceRange = 5.0
 Config.SellInsuraceMaxDays = 30
+Config.EnableSellCommandToAllGrades = false
+Config.SellCommandJobs = {
+    ["ambulance"] = { 17, 18, 19 }, -- A -1 value would let every grade to access the command
+}

@@ -220,13 +220,25 @@ function cleanExpiredInsurances()
     end)
 end
 
-Citizen.CreateThread(function()
-    while true do
-        Wait(Config.PeriodicallyDeleteInsurance)
-        print('Limpieza de seguros expirados.')
-        cleanExpiredInsurances()
+local function getCronExpression(intervalInMinutes)
+    if intervalInMinutes < 1 then
+        error('El intervalo debe ser un valor positivo.')
+    elseif intervalInMinutes <= 59 then
+        return string.format("*/%d * * * *", intervalInMinutes)
+    elseif intervalInMinutes % 60 == 0 then
+        local intervalInHours = intervalInMinutes / 60
+        return string.format("0 */%d * * *", intervalInHours)
+    else
+        error('Intervalos mayores a una hora deben ser múltiplos de 60.')
     end
+end
+
+local cronExpression = getCronExpression(Config.PeriodicallyDeleteInsurance)
+lib.cron.new(cronExpression, function()
+    print('Limpieza de seguros expirados.')
+    cleanExpiredInsurances()
 end)
+
 
 if Config.AutoRunSQL then
     if not pcall(function()
