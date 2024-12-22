@@ -1,7 +1,7 @@
 Config = {}
 
-Config.webHook = 'https://discord.com/api/webhooks/1308527212382785597/WZJe9WyQUb-lxf0-db1kNY_yCnE7TiO18yzrHgEG1wYfEC2RxAhun1XxaXxSKEnHKFwF'
-Config.webHookName = 'Logs muhaddil-machines' -- Name of the WebHook
+Config.webHook = ''
+Config.webHookName = 'Logs Muhaddil Insurance' -- Name of the WebHook
 Config.webHookLogo = 'https://github.com/Muhaddil/RSSWikiPageCreator/blob/main/public/assets/other/MuhaddilOG.png?raw=true' -- Logo of the WebHook bot
 
 Config.Locations = {
