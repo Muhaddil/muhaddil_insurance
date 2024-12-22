@@ -334,14 +334,23 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
     end
 
     local playerOptions = {}
+
+    -- Iteramos por los jugadores cercanos
     for _, player in ipairs(nearbyPlayers) do
         local serverId = GetPlayerServerId(player.id)
+        
+        -- Llamada para obtener el nombre del jugador
+        local playerNameData = lib.callback.await('getPlayerNameInGame', serverId)
+        local playerName = playerNameData.firstname .. " " .. playerNameData.lastname
+        
+        -- Añadimos la opción con el nombre completo
         table.insert(playerOptions, {
             value = serverId,
-            label = locale('select_nearby_player_label') .. ': ' .. serverId
+            label = locale('select_nearby_player_label') .. ': ' .. playerName .. ' (' ..serverId.. ')'
         })
     end
 
+    -- Mostramos el diálogo para seleccionar un jugador
     local selectPlayer = lib.inputDialog(locale('select_nearby_player'), {
         {type = 'select', label = locale('select_nearby_player_label'), options = playerOptions, required = true}
     })
@@ -363,7 +372,7 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
     local price = tonumber(input[3])
 
     if not insuranceType or duration <= 0 or price <= 0 then
-            print(locale('invalid_data'))
+        print(locale('invalid_data'))
         return
     end
 

@@ -8,12 +8,29 @@ elseif Config.FrameWork == "qb" then
     QBCore = exports['qb-core']:GetCoreObject()
 end
 
+local function discordWebHookSender(name, message, color)
+    local connect = {
+        {
+            ["color"] = color,
+            ["title"] = "**" .. name .. "**",
+            ["description"] = message,
+            ["footer"] = {
+                ["text"] = os.date("%Y-%m-%d %H:%M:%S"),
+            },
+        }
+    }
+    PerformHttpRequest(Config.webHook, function(err, text, headers) end, 'POST',
+        json.encode({ username = Config.webHookName, avatar_url = Config.webHookLogo, embeds = connect }),
+        { ['Content-Type'] = 'application/json' })
+end
+
 RegisterServerEvent('muhaddil_insurances:insurance:buy')
 AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType, targetPlayerId)
     local source = source
     local identifier = nil
     local xPlayer = nil
     local hasEnoughMoney = false
+    local playerName = "Desconocido"
     local currentMoney = 0
     local type = data.type
     local duration = data.duration
@@ -25,9 +42,11 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
     if Config.FrameWork == "esx" then
         xPlayer = ESX.GetPlayerFromId(playerId)
         identifier = xPlayer.identifier
+        playerName = xPlayer.getName() or xPlayer.getIdentifier()
     elseif Config.FrameWork == "qb" then
         xPlayer = QBCore.Functions.GetPlayer(playerId)
         identifier = xPlayer.PlayerData.citizenid
+        playerName = (xPlayer.PlayerData.charinfo.firstname and xPlayer.PlayerData.charinfo.lastname) and xPlayer.PlayerData.charinfo.firstname .. " " .. xPlayer.PlayerData.charinfo.lastname or xPlayer.PlayerData.citizenid
     end
 
     -- Money checking
@@ -85,6 +104,7 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                 if rowsChanged > 0 then
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
+                    discordWebHookSender("Compra de Seguro", "El jugador **" ..playerName .. "** (ID: " ..playerId ..") ha comprado un seguro de tipo **" .. type .. "** por **" .. duration .. "** días. Precio: $" .. price, 3066993)
                 else
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Hubo un error al contratar el seguro', 5000, 'error')
@@ -417,4 +437,55 @@ RegisterNetEvent('muhaddil_insurance:checkInsuranceExport', function()
     local hasInsurance = exports['muhaddil_insurance']:hasValidInsurance(playerId)
 
     TriggerClientEvent('muhaddil_insurance:insuranceResult', playerId, hasInsurance)
+end)
+
+lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)
+    local playerData = {}
+
+    if Config.FrameWork == "esx" then
+        local xPlayer = ESX.GetPlayerFromId(targetPlayerServerId)
+        if not xPlayer then
+            return { firstname = "Desconocido", lastname = "" }
+        end
+
+        while not xPlayer.identifier do
+            Citizen.Wait(100)
+        end
+
+        local result = MySQL.Sync.fetchAll('SELECT firstname, lastname FROM `users` WHERE identifier = @identifier', {
+            ['@identifier'] = xPlayer.identifier
+        })
+
+        if result[1] and result[1].firstname and result[1].lastname then
+            playerData.firstname = result[1].firstname
+            playerData.lastname = result[1].lastname
+        else
+            playerData.firstname = "Unknown"
+            playerData.lastname = ""
+        end
+
+    elseif Config.FrameWork == "qb" then
+        local player = QBCore.Functions.GetPlayer(targetPlayerServerId)
+        if not player then
+            return { firstname = "Desconocido", lastname = "" }
+        end
+
+        while not player.PlayerData.citizenid do
+            Citizen.Wait(100)
+        end
+
+        local result = MySQL.Sync.fetchAll('SELECT firstname, lastname FROM `players` WHERE citizenid = @citizenid', {
+            ['@citizenid'] = player.PlayerData.citizenid
+        })
+
+        if result[1] and result[1].firstname and result[1].lastname then
+            playerData.firstname = result[1].firstname
+            playerData.lastname = result[1].lastname
+        else
+            playerData.firstname = "Unknown"
+            playerData.lastname = ""
+        end
+    end
+
+    return playerData
 end)
