@@ -1,4 +1,4 @@
-# Muhaddil Insurance Script
+# Muhaddil Insurance Script (FiveM)
 
 ## Overview
 **Muhaddil Insurance** is a FiveM resource that adds a custom NPC, allowing players to purchase medical insurance in-game.
