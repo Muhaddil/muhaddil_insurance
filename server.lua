@@ -432,11 +432,12 @@ RegisterNetEvent('muhaddil_insurance:syncInsuranceStatus', function(playerId)
     TriggerClientEvent('muhaddil_insurance:updateInsuranceStatus', playerId, hasInsurance)
 end)
 
-RegisterNetEvent('muhaddil_insurance:checkInsuranceExport', function()
-    local playerId = source
-    local hasInsurance = exports['muhaddil_insurance']:hasValidInsurance(playerId)
+RegisterNetEvent('muhaddil_insurance:checkInsuranceExport', function(playerId)
+    local requestingPlayer = source
+    local targetPlayerId = playerId or requestingPlayer
+    local hasInsurance = exports['muhaddil_insurance']:hasValidInsurance(targetPlayerId)
 
-    TriggerClientEvent('muhaddil_insurance:insuranceResult', playerId, hasInsurance)
+    TriggerClientEvent('muhaddil_insurance:insuranceResult', requestingPlayer, hasInsurance)
 end)
 
 lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)

@@ -335,22 +335,18 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
 
     local playerOptions = {}
 
-    -- Iteramos por los jugadores cercanos
     for _, player in ipairs(nearbyPlayers) do
         local serverId = GetPlayerServerId(player.id)
         
-        -- Llamada para obtener el nombre del jugador
         local playerNameData = lib.callback.await('getPlayerNameInGame', serverId)
         local playerName = playerNameData.firstname .. " " .. playerNameData.lastname
         
-        -- Añadimos la opción con el nombre completo
         table.insert(playerOptions, {
             value = serverId,
             label = locale('select_nearby_player_label') .. ': ' .. playerName .. ' (' ..serverId.. ')'
         })
     end
 
-    -- Mostramos el diálogo para seleccionar un jugador
     local selectPlayer = lib.inputDialog(locale('select_nearby_player'), {
         {type = 'select', label = locale('select_nearby_player_label'), options = playerOptions, required = true}
     })
@@ -430,10 +426,14 @@ function validateSellAccess(jobName, jobGrade)
     end
 end
 
-exports("hasValidInsurance", function()
+exports("hasValidInsurance", function(playerId)
     local promise = promise.new()
 
-    TriggerServerEvent('muhaddil_insurance:checkInsuranceExport')
+    if not playerId or playerId == PlayerId() then
+        playerId = GetPlayerServerId(PlayerId())
+    end
+
+    TriggerServerEvent('muhaddil_insurance:checkInsuranceExport', playerId)
 
     RegisterNetEvent('muhaddil_insurance:insuranceResult', function(result)
         promise:resolve(result)
