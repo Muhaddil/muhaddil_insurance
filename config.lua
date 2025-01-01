@@ -53,7 +53,6 @@ Config.DiscountAlreadyUsedMessage = 'Ya has usado el descuento para esta sesión
 Config.AutoRunSQL = true -- Enable or disable automatic integration of the SQL table needed for this script.
 Config.AutoVersionChecker = true -- Enable or disable the automatic version checker. If 'true', it will check for updates and warn you if the script isn't up to date.
 
-
 -- Edit this function to suit your requirements
 function openInsuranceMenu(insuranceData)
     local options = {}

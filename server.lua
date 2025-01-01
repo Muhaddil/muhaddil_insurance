@@ -1,6 +1,6 @@
 local currentVersion = GetResourceMetadata(GetCurrentResourceName(), 'version')
-local resourceName = 'Muhaddil/muhaddil_insurance'
-local githubApiUrl = 'https://api.github.com/repos/' .. resourceName .. '/releases/latest'
+local resourceRepo = 'Muhaddil/muhaddil_insurance'
+local githubApiUrl = 'https://api.github.com/repos/' .. resourceRepo .. '/releases/latest'
 
 if Config.FrameWork == "esx" then
     ESX = exports['es_extended']:getSharedObject()
@@ -46,7 +46,9 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
     elseif Config.FrameWork == "qb" then
         xPlayer = QBCore.Functions.GetPlayer(playerId)
         identifier = xPlayer.PlayerData.citizenid
-        playerName = (xPlayer.PlayerData.charinfo.firstname and xPlayer.PlayerData.charinfo.lastname) and xPlayer.PlayerData.charinfo.firstname .. " " .. xPlayer.PlayerData.charinfo.lastname or xPlayer.PlayerData.citizenid
+        playerName = (xPlayer.PlayerData.charinfo.firstname and xPlayer.PlayerData.charinfo.lastname) and
+            xPlayer.PlayerData.charinfo.firstname .. " " .. xPlayer.PlayerData.charinfo.lastname or
+            xPlayer.PlayerData.citizenid
     end
 
     -- Money checking
@@ -104,7 +106,13 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                 if rowsChanged > 0 then
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
-                    discordWebHookSender("Compra de Seguro", "El jugador **" ..playerName .. "** (ID: " ..playerId ..") ha comprado un seguro de tipo **" .. type .. "** por **" .. duration .. "** días. Precio: $" .. price, 3066993)
+                    discordWebHookSender("Compra de Seguro",
+                        "El jugador **" ..
+                        playerName ..
+                        "** (ID: " ..
+                        playerId ..
+                        ") ha comprado un seguro de tipo **" ..
+                        type .. "** por **" .. duration .. "** días. Precio: $" .. price, 3066993)
                 else
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Hubo un error al contratar el seguro', 5000, 'error')
@@ -259,7 +267,6 @@ lib.cron.new(cronExpression, function()
     cleanExpiredInsurances()
 end)
 
-
 if Config.AutoRunSQL then
     if not pcall(function()
             local fileName = "InstallSQL.sql"
@@ -343,52 +350,73 @@ local function printWrapped(text, length, colorCode)
     end
 end
 
+local versionData = {
+    latestVersion = nil,
+    releaseDate = nil,
+    notes = nil,
+    downloadUrl = nil
+}
 
-if Config.AutoVersionChecker then
+local isUpdateAvailable = false
+
+function fetchVersionData()
     PerformHttpRequest(githubApiUrl, function(statusCode, response, headers)
         if statusCode == 200 then
             local data = json.decode(response)
 
             if data and data.tag_name then
-                local latestVersion = data.tag_name
-                local releaseDate = data.published_at or "Unknown"
-                local formattedDate = formatDate(releaseDate)
-                local notes = data.body or "No notes available"
-                local downloadUrl = data.html_url or "No download link available"
-                local shortenedUrl = shortenTexts(downloadUrl)
-                local shortenedNotes = shortenTexts(notes)
-
-
-                local boxWidth = 54
-                local boxWidthNotes = 54
-
-                if latestVersion ~= currentVersion then
-                    print('╭────────────────────────────────────────────────────╮')
-                    printCentered('[Muhaddil_Insurances] - New Version Available', boxWidth, '34') -- Blue
-                    printWrapped('Current version: ' .. currentVersion, boxWidth, '32')            -- Green
-                    printWrapped('Latest version: ' .. latestVersion, boxWidth, '33')              -- Yellow
-                    printWrapped('Released: ' .. formattedDate, boxWidth, '33')                    -- Yellow
-                    printWrapped('Notes: ' .. shortenedNotes, boxWidthNotes, '33')                 -- Yellow
-                    printWrapped('Download: ' .. shortenedUrl, boxWidth, '32')                     -- Green
-                    print('╰────────────────────────────────────────────────────╯')
-                else
-                    print('╭────────────────────────────────────────────────────╮')
-                    printWrapped('[Muhaddil_Insurances] - Up-to-date', boxWidth, '32')  -- Green
-                    printWrapped('Current version: ' .. currentVersion, boxWidth, '32') -- Green
-                    print('╰────────────────────────────────────────────────────╯')
-                end
+                versionData.latestVersion = data.tag_name
+                versionData.releaseDate = formatDate(data.published_at or "Unknown")
+                versionData.notes = shortenTexts(data.body or "No notes available")
+                versionData.downloadUrl = shortenTexts(data.html_url or "No download link available")
+                displayVersionData()
+                isUpdateAvailable = (versionData.latestVersion ~= currentVersion)
             else
-                printWithColor('[Muhaddil_Insurances] - Error: The JSON structure is not as expected.', '31') -- Red
-                printWithColor('GitHub API Response: ' .. response, '31')                                     -- Red
+                printWithColor('[Muhaddil_Insurances] - Error: Invalid JSON structure.', '31') -- Red
             end
         else
-            printWithColor('[Muhaddil_Insurances] - Failed to check for latest version. Status code: ' .. statusCode,
-                '31') -- Red
-            printWithColor('[Muhaddil_Insurances] - GitHub might be having issues',
-                '31') -- Red
+            printWithColor('[Muhaddil_Insurances] - Failed to fetch version data. Status code: ' .. statusCode, '31') -- Red
         end
     end, 'GET')
 end
+
+function displayVersionData()
+    local boxWidth = 54
+    local boxWidthNotes = 54
+
+    if versionData.latestVersion then
+        if versionData.latestVersion ~= currentVersion then
+            print('╭────────────────────────────────────────────────────╮')
+            printCentered('[Muhaddil_Insurances] - New Version Available', boxWidth, '34') -- Blue
+            printWrapped('Current version: ' .. currentVersion, boxWidth, '32')            -- Green
+            printWrapped('Latest version: ' .. versionData.latestVersion, boxWidth, '33')  -- Yellow
+            printWrapped('Released: ' .. versionData.releaseDate, boxWidth, '33')          -- Yellow
+            printWrapped('Notes: ' .. versionData.notes, boxWidthNotes, '33')              -- Yellow
+            printWrapped('Download: ' .. versionData.downloadUrl, boxWidth, '32')          -- Green
+            print('╰────────────────────────────────────────────────────╯')
+        else
+            print('╭────────────────────────────────────────────────────╮')
+            printWrapped('[Muhaddil_Insurances] - Up-to-date', boxWidth, '32')  -- Green
+            printWrapped('Current version: ' .. currentVersion, boxWidth, '32') -- Green
+            print('╰────────────────────────────────────────────────────╯')
+        end
+    else
+        printWithColor('[Muhaddil_Insurances] - No version data available.', '31') -- Red
+    end
+end
+
+Citizen.CreateThread(function()
+    if Config.AutoVersionChecker then
+        fetchVersionData()
+    end
+end)
+
+local updateCronExpression = getCronExpression(30)
+lib.cron.new(updateCronExpression, function()
+    if isUpdateAvailable then
+        displayVersionData()
+    end
+end)
 
 exports("hasValidInsurance", function(playerId)
     local Player
