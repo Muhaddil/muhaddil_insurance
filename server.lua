@@ -441,50 +441,31 @@ RegisterNetEvent('muhaddil_insurance:checkInsuranceExport', function(playerId)
 end)
 
 lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)
-    local playerData = {}
+    local playerData = { firstname = "Desconocido", lastname = "" }
 
     if Config.FrameWork == "esx" then
         local xPlayer = ESX.GetPlayerFromId(targetPlayerServerId)
-        if not xPlayer then
-            return { firstname = "Desconocido", lastname = "" }
-        end
-
-        while not xPlayer.identifier do
-            Citizen.Wait(100)
-        end
+        if not xPlayer then return playerData end
 
         local result = MySQL.Sync.fetchAll('SELECT firstname, lastname FROM `users` WHERE identifier = @identifier', {
             ['@identifier'] = xPlayer.identifier
         })
 
-        if result[1] and result[1].firstname and result[1].lastname then
-            playerData.firstname = result[1].firstname
-            playerData.lastname = result[1].lastname
-        else
-            playerData.firstname = "Unknown"
-            playerData.lastname = ""
+        if result[1] then
+            playerData.firstname = result[1].firstname or "Unknown"
+            playerData.lastname = result[1].lastname or ""
         end
-
     elseif Config.FrameWork == "qb" then
         local player = QBCore.Functions.GetPlayer(targetPlayerServerId)
-        if not player then
-            return { firstname = "Desconocido", lastname = "" }
-        end
-
-        while not player.PlayerData.citizenid do
-            Citizen.Wait(100)
-        end
+        if not player then return playerData end
 
         local result = MySQL.Sync.fetchAll('SELECT firstname, lastname FROM `players` WHERE citizenid = @citizenid', {
             ['@citizenid'] = player.PlayerData.citizenid
         })
 
-        if result[1] and result[1].firstname and result[1].lastname then
-            playerData.firstname = result[1].firstname
-            playerData.lastname = result[1].lastname
-        else
-            playerData.firstname = "Unknown"
-            playerData.lastname = ""
+        if result[1] then
+            playerData.firstname = result[1].firstname or "Unknown"
+            playerData.lastname = result[1].lastname or ""
         end
     end
 

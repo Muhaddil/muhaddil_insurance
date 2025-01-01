@@ -146,6 +146,7 @@ Config.CanSellInsuraceToHimself = true
 Config.SellInsuraceRange = 5.0
 Config.SellInsuraceMaxDays = 30
 Config.EnableSellCommandToAllGrades = false
+Config.ShowName = false -- Show the player's name when selling insurance.
 Config.SellCommandJobs = {
     ["ambulance"] = { 17, 18, 19 }, -- A -1 value would let every grade to access the command
 }

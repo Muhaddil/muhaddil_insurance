@@ -336,16 +336,27 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
     local playerOptions = {}
 
     for _, player in ipairs(nearbyPlayers) do
-        local serverId = GetPlayerServerId(player.id)
-        
+        local serverId = GetPlayerServerId(player.id)            
         local playerNameData = lib.callback.await('getPlayerNameInGame', serverId)
+
+        if not playerNameData or not playerNameData.firstname then
+            playerNameData = { firstname = "Jugador", lastname = serverId }
+        end        
+    
         local playerName = playerNameData.firstname .. " " .. playerNameData.lastname
         
+        local label
+        if Config.ShowName then
+            label = locale('select_nearby_player_label') .. ': ' .. playerName .. ' (' .. serverId .. ')'
+        else
+            label = locale('select_nearby_player_label') .. ': ' .. serverId
+        end
+
         table.insert(playerOptions, {
             value = serverId,
-            label = locale('select_nearby_player_label') .. ': ' .. playerName .. ' (' ..serverId.. ')'
+            label = label
         })
-    end
+    end    
 
     local selectPlayer = lib.inputDialog(locale('select_nearby_player'), {
         {type = 'select', label = locale('select_nearby_player_label'), options = playerOptions, required = true}
