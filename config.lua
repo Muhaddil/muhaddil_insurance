@@ -1,8 +1,6 @@
 Config = {}
 
-Config.webHook = ''
-Config.webHookName = 'Logs Muhaddil Insurance' -- Name of the WebHook
-Config.webHookLogo = 'https://github.com/Muhaddil/RSSWikiPageCreator/blob/main/public/assets/other/MuhaddilOG.png?raw=true' -- Logo of the WebHook bot
+-- Configure the WebHook on server.lua file, lines 4, 5 and 6
 
 Config.Locations = {
     ["insurances"] = {

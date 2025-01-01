@@ -1,6 +1,9 @@
 local currentVersion = GetResourceMetadata(GetCurrentResourceName(), 'version')
 local resourceRepo = 'Muhaddil/muhaddil_insurance'
 local githubApiUrl = 'https://api.github.com/repos/' .. resourceRepo .. '/releases/latest'
+local webHookLink = '' -- Discord WebHook Link
+local webHookName = 'Logs Muhaddil Insurance' -- Name of the WebHook
+local webHookLogo = 'https://github.com/Muhaddil/RSSWikiPageCreator/blob/main/public/assets/other/MuhaddilOG.png?raw=true' -- Logo of the WebHook bot
 
 if Config.FrameWork == "esx" then
     ESX = exports['es_extended']:getSharedObject()
@@ -19,8 +22,8 @@ local function discordWebHookSender(name, message, color)
             },
         }
     }
-    PerformHttpRequest(Config.webHook, function(err, text, headers) end, 'POST',
-        json.encode({ username = Config.webHookName, avatar_url = Config.webHookLogo, embeds = connect }),
+    PerformHttpRequest(webHookLink, function(err, text, headers) end, 'POST',
+        json.encode({ username = webHookName, avatar_url = webHookLogo, embeds = connect }),
         { ['Content-Type'] = 'application/json' })
 end
 
