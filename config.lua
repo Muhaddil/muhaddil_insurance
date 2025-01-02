@@ -1,6 +1,7 @@
 Config = {}
 
--- Configure the WebHook on server.lua file, lines 4, 5 and 6
+Config.UseOXLogger = false -- Enable or disable OX Logger. If 'true', it will use OX Logger; otherwise, it will use the discordWebHookSender fuction (server line 14)
+-- If not using OX Logger, configure the WebHook on server.lua file, lines 4, 5 and 6
 
 Config.Locations = {
     ["insurances"] = {

@@ -107,15 +107,16 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                 ['@expiration'] = expiration
             }, function(rowsChanged)
                 if rowsChanged > 0 then
+                    local successMessage = "El jugador **" .. playerName .. "** (ID: " .. playerId .. ") ha comprado un seguro de tipo **" .. type .. "** por **" .. duration .. "** días. Precio: $" .. price
+
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
-                    discordWebHookSender("Compra de Seguro",
-                        "El jugador **" ..
-                        playerName ..
-                        "** (ID: " ..
-                        playerId ..
-                        ") ha comprado un seguro de tipo **" ..
-                        type .. "** por **" .. duration .. "** días. Precio: $" .. price, 3066993)
+
+                    if Config.UseOXLogger then
+                        discordWebHookSender("Compra de Seguro", successMessage, 3066993)
+                    else
+                        lib.logger(identifier, 'muhaddil_insurances:insurance:buy', successMessage)
+                    end
                 else
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Hubo un error al contratar el seguro', 5000, 'error')
