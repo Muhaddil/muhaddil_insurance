@@ -4,7 +4,7 @@ lua54 'yes'
 
 author 'Muhaddil'
 description 'Simple Medical Insurance Script'
-version 'v1.0.111'
+version 'v1.0.12'
 
 shared_script 'config.lua'
 client_script 'client.lua'

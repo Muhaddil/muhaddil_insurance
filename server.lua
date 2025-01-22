@@ -271,6 +271,10 @@ lib.cron.new(cronExpression, function()
     cleanExpiredInsurances()
 end)
 
+RegisterNetEvent('muhaddil_insurances:insurance:offer', function(targetPlayerId, insuranceData)
+    TriggerClientEvent('muhaddil_insurances:insurance:receiveOffer', targetPlayerId, insuranceData)
+end)
+
 if Config.AutoRunSQL then
     if not pcall(function()
             local fileName = "InstallSQL.sql"

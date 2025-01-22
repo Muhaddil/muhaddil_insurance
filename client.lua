@@ -377,18 +377,37 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
     local insuranceType = input[1]
     local duration = tonumber(input[2])
     local price = tonumber(input[3])
+    local accountType = Config.Account
 
     if not insuranceType or duration <= 0 or price <= 0 then
         print(locale('invalid_data'))
         return
     end
 
-    local accountType = Config.Account
-    TriggerServerEvent('muhaddil_insurances:insurance:buy', {
+    TriggerServerEvent('muhaddil_insurances:insurance:offer', targetPlayerId, {
         type = insuranceType,
         duration = duration,
-        price = price
-    }, accountType, targetPlayerId)
+        price = price,
+        accountType = accountType,
+        sellerId = GetPlayerServerId(PlayerId())
+    })
+end)
+
+RegisterNetEvent('muhaddil_insurances:insurance:receiveOffer', function(insuranceData)
+    local accept = lib.inputDialog(locale('insurance_offer_title'), {
+        {type = 'text', label = locale('insurance_offer_label', insuranceData.type, insuranceData.duration, insuranceData.price)},
+        {type = 'checkbox', label = locale('insurance_offer_accept_label')},
+    })
+
+    if accept[2] == true then
+        TriggerServerEvent('muhaddil_insurances:insurance:buy', {
+            type = insuranceData.type,
+            duration = insuranceData.duration,
+            price = insuranceData.price
+        }, insuranceData.accountType, insuranceData.sellerId)
+    else
+        print(locale('insurance_offer_rejected'))
+    end
 end)
 
 if Config.EnableSellCommand then
