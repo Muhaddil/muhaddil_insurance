@@ -394,6 +394,7 @@ RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
 end)
 
 RegisterNetEvent('muhaddil_insurances:insurance:receiveOffer', function(insuranceData)
+    local playerId = GetPlayerServerId(PlayerId())
     local accept = lib.inputDialog(locale('insurance_offer_title'), {
         {type = 'text', label = locale('insurance_offer_label', insuranceData.type, insuranceData.duration, insuranceData.price)},
         {type = 'checkbox', label = locale('insurance_offer_accept_label')},
@@ -404,7 +405,7 @@ RegisterNetEvent('muhaddil_insurances:insurance:receiveOffer', function(insuranc
             type = insuranceData.type,
             duration = insuranceData.duration,
             price = insuranceData.price
-        }, insuranceData.accountType, insuranceData.sellerId)
+        }, insuranceData.accountType, playerId)
     else
         print(locale('insurance_offer_rejected'))
     end
