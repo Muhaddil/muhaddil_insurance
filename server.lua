@@ -112,7 +112,7 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
 
-                    if Config.UseOXLogger then
+                    if not Config.UseOXLogger then
                         discordWebHookSender("Compra de Seguro", successMessage, 3066993)
                     else
                         lib.logger(identifier, 'muhaddil_insurances:insurance:buy', successMessage)
