@@ -1,7 +1,38 @@
-if Config.FrameWork == "esx" then
-    ESX = exports['es_extended']:getSharedObject()
-elseif Config.FrameWork == "qb" then
+local ESXVer = Config.ESXVer
+local FrameWork = nil
+
+if Config.FrameWork == "auto" then
+    if GetResourceState('es_extended') == 'started' then
+        if ESXVer == 'new' then
+            ESX = exports['es_extended']:getSharedObject()
+            FrameWork = 'esx'
+        else
+            ESX = nil
+            while ESX == nil do
+                TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+                Citizen.Wait(0)
+            end
+        end
+    elseif GetResourceState('qb-core') == 'started' then
+        QBCore = exports['qb-core']:GetCoreObject()
+        FrameWork = 'qb'
+    end
+elseif Config.FrameWork == "esx" and GetResourceState('es_extended') == 'started' then
+    if ESXVer == 'new' then
+        ESX = exports['es_extended']:getSharedObject()
+        FrameWork = 'esx'
+    else
+        ESX = nil
+        while ESX == nil do
+            TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+            Citizen.Wait(0)
+        end
+    end
+elseif Config.FrameWork == "qb" and GetResourceState('qb-core') == 'started' then
     QBCore = exports['qb-core']:GetCoreObject()
+    FrameWork = 'qb'
+else
+    print('===NO SUPPORTED FRAMEWORK FOUND===')
 end
 
 lib.locale()
@@ -23,9 +54,9 @@ function Notify(msgtitle, msg, time, type2)
             }
         })
     else
-        if Config.Framework == 'qb' then
+        if FrameWork == 'qb' then
             QBCore.Functions.Notify(msg, type2, time)
-        elseif Config.Framework == 'esx' then
+        elseif FrameWork == 'esx' then
             TriggerEvent('esx:showNotification', msg, type2, time)
         end
     end
@@ -39,9 +70,9 @@ end)
 function CanAccessInsurance()
     local playerJob = nil
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         playerJob = ESX.GetPlayerData().job.name
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         playerJob = QBCore.Functions.GetPlayerData().job.name
     end
 
@@ -85,9 +116,7 @@ function TargetingBoxZone(name, coords, x, y, z, list1, list2, list3)
             drawSprite = true,
             options = {
                 list1,
-
                 list2,
-
                 list3,
             }
         })
@@ -200,7 +229,7 @@ RegisterCommand('checkInsurance', function()
 
     local allowedJobs = Config.CheckInsuranceCommandJob
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         ESX.TriggerServerCallback('esx:getPlayerData', function(playerData)
             jobName = playerData.job.name
             local hasAccess = false
@@ -218,7 +247,7 @@ RegisterCommand('checkInsurance', function()
                 Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
             end
         end, playerId)
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         local PlayerData = QBCore.Functions.GetPlayerData()
         jobName = PlayerData.job.name
         local hasAccess = false
@@ -243,18 +272,116 @@ AddEventHandler('muhaddil_insurances:checkInsurance', function()
     if CanAccessInsurance() then
         local playerId = GetPlayerServerId(PlayerId())
 
-        if Config.FrameWork == "esx" then
+        if FrameWork == "esx" then
             ESX.TriggerServerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
-                openInsuranceMenu(insuranceData)
+                OpenInsuranceNUI(insuranceData)
             end, playerId)
-        elseif Config.FrameWork == "qb" then
+        elseif FrameWork == "qb" then
             QBCore.Functions.TriggerCallback('muhaddil_insurances:insurance:getInsurance', function(insuranceData)
-                openInsuranceMenu(insuranceData)
+                OpenInsuranceNUI(insuranceData)
             end, playerId)
         end
     else
         Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
     end
+end)
+
+function OpenInsuranceNUI(insuranceData)
+    local canSellDiscount = CanSellDiscountInsurance()
+    local canSellCustom = CanSellCustomInsurance()
+    
+    local localeData = lib.callback.await('muhaddil_insurances:getLocaleData', false)
+    
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openInsurance",
+        data = {
+            insurance = insuranceData,
+            canSellDiscount = canSellDiscount,
+            canSellCustom = canSellCustom,
+            config = {
+                insuranceTypes = Config.InsuranceTypes,
+                useDiscounts = Config.UseDiscounts,
+                discountPercentage = Config.DiscountPercentage
+            }
+        }
+    })
+    
+    SendNUIMessage({
+        action = "setLocale",
+        localeData = localeData
+    })
+end
+
+RegisterNUICallback('closeNUI', function(data, cb)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+RegisterNUICallback('buyInsurance', function(data, cb)
+    local accountType = Config.Account
+    TriggerServerEvent('muhaddil_insurances:insurance:buy', data, accountType)
+    SetNuiFocus(false, false)
+    cb('ok')
+end)
+
+RegisterNUICallback('getNearbyPlayers', function(data, cb)
+    local nearbyPlayers = lib.getNearbyPlayers(GetEntityCoords(PlayerPedId()), Config.SellInsuraceRange,
+        Config.CanSellInsuraceToHimself)
+
+    if not nearbyPlayers then
+        cb({ players = {} })
+        return
+    end
+
+    local playerOptions = {}
+
+    for _, player in ipairs(nearbyPlayers) do
+        local serverId = GetPlayerServerId(player.id)
+        local distance = #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(GetPlayerPed(player.id)))
+        local playerNameData = lib.callback.await('getPlayerNameInGame', serverId)
+
+        if not playerNameData or not playerNameData.firstname then
+            playerNameData = { firstname = "Jugador", lastname = serverId }
+        end
+
+        local playerName = playerNameData.firstname .. " " .. playerNameData.lastname
+
+        table.insert(playerOptions, {
+            id = serverId,
+            name = playerName,
+            distance = math.floor(distance)
+        })
+    end
+
+    Wait(100)
+
+    cb({ players = playerOptions })
+end)
+
+RegisterNUICallback('sellCustomInsurance', function(data, cb)
+    local targetPlayerId = data.targetId
+    local insuranceType = data.insuranceType
+    local duration = tonumber(data.duration)
+    local price = tonumber(data.price)
+    local accountType = Config.Account
+
+    if not insuranceType or duration <= 0 or price <= 0 then
+        Notify(locale('error'), locale('invalid_arguments'), Config.NotificationDuration, "error")
+        cb('error')
+        return
+    end
+
+    TriggerServerEvent('muhaddil_insurances:insurance:offer', targetPlayerId, {
+        type = insuranceType,
+        duration = duration,
+        price = price,
+        accountType = accountType,
+        sellerId = GetPlayerServerId(PlayerId())
+    })
+
+    SetNuiFocus(false, false)
+    cb('ok')
 end)
 
 function CanSellDiscountInsurance()
@@ -266,9 +393,9 @@ function CanSellDiscountInsurance()
         return false
     else
         local playerJob = nil
-        if Config.FrameWork == "esx" then
+        if FrameWork == "esx" then
             playerJob = ESX.GetPlayerData().job.name
-        elseif Config.FrameWork == "qb" then
+        elseif FrameWork == "qb" then
             playerJob = QBCore.Functions.GetPlayerData().job.name
         end
 
@@ -282,123 +409,54 @@ function CanSellDiscountInsurance()
     end
 end
 
-function GetClosestPlayer()
-    local players = GetActivePlayers()
-    local closestDistance = -1
-    local closestPlayer = -1
-    local playerPed = PlayerPedId()
-    local playerCoords = GetEntityCoords(playerPed)
+function CanSellCustomInsurance()
+    if not Config.EnableSellCommand then
+        return false
+    end
 
-    for i = 1, #players do
-        local target = GetPlayerPed(players[i])
-        if target ~= playerPed then
-            local targetCoords = GetEntityCoords(target)
-            local distance = #(playerCoords - targetCoords)
+    local playerJob = nil
+    local jobGrade = nil
 
-            if closestDistance == -1 or distance < closestDistance then
-                closestPlayer = players[i]
-                closestDistance = distance
+    if FrameWork == "esx" then
+        local playerData = ESX.GetPlayerData()
+        playerJob = playerData.job.name
+        jobGrade = playerData.job.grade
+    elseif FrameWork == "qb" then
+        local PlayerData = QBCore.Functions.GetPlayerData()
+        playerJob = PlayerData.job.name
+        jobGrade = PlayerData.job.grade.level
+    end
+
+    local hasAccess = false
+
+    if Config.EnableSellCommandToAllGrades then
+        hasAccess = Config.SellCommandJobs[playerJob] ~= nil
+    else
+        local allowedGrades = Config.SellCommandJobs[playerJob]
+
+        if allowedGrades then
+            for _, grade in ipairs(allowedGrades) do
+                if grade == -1 or grade == jobGrade then
+                    hasAccess = true
+                    break
+                end
             end
         end
     end
 
-    return closestPlayer, closestDistance
+    return hasAccess
 end
-
-RegisterNetEvent('muhaddil_insurances:insurance:buyDiscount')
-AddEventHandler('muhaddil_insurances:insurance:buyDiscount', function(data)
-    if not hasUsedDiscount then
-        local closestPlayer, closestDistance = GetClosestPlayer()
-
-        if closestPlayer ~= -1 and closestDistance <= Config.DiscountInteractionDistance then
-            local targetPlayerId = GetPlayerServerId(closestPlayer)
-            local accountType = Config.Account
-
-            TriggerServerEvent('muhaddil_insurances:insurance:buy', data, accountType, targetPlayerId)
-            hasUsedDiscount = true
-            Notify(Config.DiscountAppliedTitle, Config.DiscountAppliedMessage, Config.NotificationDuration, "success")
-        else
-            Notify(Config.ErrorTitle, Config.NoPlayerNearbyMessage, Config.NotificationDuration, "error")
-        end
-    else
-        Notify(Config.DiscountAlreadyUsedTitle, Config.DiscountAlreadyUsedMessage, Config.NotificationDuration, "error")
-    end
-end)
-
-RegisterNetEvent('muhaddil_insurances:insurance:customPrice', function()
-    local nearbyPlayers = lib.getNearbyPlayers(GetEntityCoords(PlayerPedId()), Config.SellInsuraceRange, Config.CanSellInsuraceToHimself)
-
-    if not nearbyPlayers or #nearbyPlayers == 0 then
-        print(locale('no_nearby_players'))
-        return
-    end
-
-    local playerOptions = {}
-
-    for _, player in ipairs(nearbyPlayers) do
-        local serverId = GetPlayerServerId(player.id)            
-        local playerNameData = lib.callback.await('getPlayerNameInGame', serverId)
-
-        if not playerNameData or not playerNameData.firstname then
-            playerNameData = { firstname = "Jugador", lastname = serverId }
-        end        
-    
-        local playerName = playerNameData.firstname .. " " .. playerNameData.lastname
-        
-        local label
-        if Config.ShowName then
-            label = locale('select_nearby_player_label') .. ': ' .. playerName .. ' (' .. serverId .. ')'
-        else
-            label = locale('select_nearby_player_label') .. ': ' .. serverId
-        end
-
-        table.insert(playerOptions, {
-            value = serverId,
-            label = label
-        })
-    end    
-
-    local selectPlayer = lib.inputDialog(locale('select_nearby_player'), {
-        {type = 'select', label = locale('select_nearby_player_label'), options = playerOptions, required = true}
-    })
-
-    if not selectPlayer then return end
-
-    local targetPlayerId = selectPlayer[1]
-
-    local input = lib.inputDialog(locale('configure_custom_insurance'), {
-        {type = 'input', label = locale('insurance_type'), description = locale('insurance_type_description'), required = true},
-        {type = 'number', label = locale('insurance_duration'), description = locale('insurance_duration_description'), required = true, min = 1, max = Config.SellInsuraceMaxDays},
-        {type = 'number', label = locale('insurance_price'), description = locale('insurance_price_description'), required = true, min = 1}
-    })
-
-    if not input then return end
-
-    local insuranceType = input[1]
-    local duration = tonumber(input[2])
-    local price = tonumber(input[3])
-    local accountType = Config.Account
-
-    if not insuranceType or duration <= 0 or price <= 0 then
-        print(locale('invalid_data'))
-        return
-    end
-
-    TriggerServerEvent('muhaddil_insurances:insurance:offer', targetPlayerId, {
-        type = insuranceType,
-        duration = duration,
-        price = price,
-        accountType = accountType,
-        sellerId = GetPlayerServerId(PlayerId())
-    })
-end)
 
 RegisterNetEvent('muhaddil_insurances:insurance:receiveOffer', function(insuranceData)
     local playerId = GetPlayerServerId(PlayerId())
     local accept = lib.inputDialog(locale('insurance_offer_title'), {
-        {type = 'text', label = locale('insurance_offer_label', insuranceData.type, insuranceData.duration, insuranceData.price)},
-        {type = 'checkbox', label = locale('insurance_offer_accept_label')},
+        { type = 'text',     label = locale('insurance_offer_label', insuranceData.type, insuranceData.duration, insuranceData.price) },
+        { type = 'checkbox', label = locale('insurance_offer_accept_label') },
     })
+
+    if not accept then
+        return
+    end
 
     if accept[2] == true then
         TriggerServerEvent('muhaddil_insurances:insurance:buy', {
@@ -407,7 +465,7 @@ RegisterNetEvent('muhaddil_insurances:insurance:receiveOffer', function(insuranc
             price = insuranceData.price
         }, insuranceData.accountType, playerId)
     else
-        print(locale('insurance_offer_rejected'))
+        Notify(locale('insurance_offer_rejected'))
     end
 end)
 
@@ -417,13 +475,13 @@ if Config.EnableSellCommand then
         local jobName, jobGrade = nil, nil
         local allowedJobs = Config.SellCommandJobs
 
-        if Config.FrameWork == "esx" then
+        if FrameWork == "esx" then
             ESX.TriggerServerCallback('esx:getPlayerData', function(playerData)
                 jobName = playerData.job.name
                 jobGrade = playerData.job.grade
                 validateSellAccess(jobName, jobGrade)
             end, playerId)
-        elseif Config.FrameWork == "qb" then
+        elseif FrameWork == "qb" then
             local PlayerData = QBCore.Functions.GetPlayerData()
             jobName = PlayerData.job.name
             jobGrade = PlayerData.job.grade.level
@@ -451,10 +509,24 @@ function validateSellAccess(jobName, jobGrade)
     end
 
     if hasAccess then
-        openSellInsurance()
+        OpenSellInsuranceNUI()
     else
         Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
     end
+end
+
+function OpenSellInsuranceNUI()
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openSellInsurance",
+        data = {
+            config = {
+                insuranceTypes = Config.InsuranceTypes,
+                maxDays = Config.SellInsuraceMaxDays,
+                showName = Config.ShowName
+            }
+        }
+    })
 end
 
 exports("hasValidInsurance", function(playerId)

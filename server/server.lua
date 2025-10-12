@@ -1,14 +1,45 @@
-local currentVersion = GetResourceMetadata(GetCurrentResourceName(), 'version')
-local resourceRepo = 'Muhaddil/muhaddil_insurance'
-local githubApiUrl = 'https://api.github.com/repos/' .. resourceRepo .. '/releases/latest'
-local webHookLink = '' -- Discord WebHook Link
-local webHookName = 'Logs Muhaddil Insurance' -- Name of the WebHook
-local webHookLogo = 'https://github.com/Muhaddil/RSSWikiPageCreator/blob/main/public/assets/other/MuhaddilOG.png?raw=true' -- Logo of the WebHook bot
+local webHookLink =
+''                                                                                                     -- Discord WebHook Link
+local webHookName =
+'Logs Muhaddil Insurance'                                                                              -- Name of the WebHook
+local webHookLogo =
+'https://github.com/Muhaddil/RSSWikiPageCreator/blob/main/public/assets/other/MuhaddilOG.png?raw=true' -- Logo of the WebHook bot
 
-if Config.FrameWork == "esx" then
-    ESX = exports['es_extended']:getSharedObject()
-elseif Config.FrameWork == "qb" then
+local ESXVer = Config.ESXVer
+local FrameWork = nil
+
+if Config.FrameWork == "auto" then
+    if GetResourceState('es_extended') == 'started' then
+        if ESXVer == 'new' then
+            ESX = exports['es_extended']:getSharedObject()
+            FrameWork = 'esx'
+        else
+            ESX = nil
+            while ESX == nil do
+                TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+                Citizen.Wait(0)
+            end
+        end
+    elseif GetResourceState('qb-core') == 'started' then
+        QBCore = exports['qb-core']:GetCoreObject()
+        FrameWork = 'qb'
+    end
+elseif Config.FrameWork == "esx" and GetResourceState('es_extended') == 'started' then
+    if ESXVer == 'new' then
+        ESX = exports['es_extended']:getSharedObject()
+        FrameWork = 'esx'
+    else
+        ESX = nil
+        while ESX == nil do
+            TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+            Citizen.Wait(0)
+        end
+    end
+elseif Config.FrameWork == "qb" and GetResourceState('qb-core') == 'started' then
     QBCore = exports['qb-core']:GetCoreObject()
+    FrameWork = 'qb'
+else
+    print('===NO SUPPORTED FRAMEWORK FOUND===')
 end
 
 local function discordWebHookSender(name, message, color)
@@ -27,6 +58,66 @@ local function discordWebHookSender(name, message, color)
         { ['Content-Type'] = 'application/json' })
 end
 
+local function tryPay(xPlayer, accountType, price)
+    local hasEnoughMoney = false
+    local currentMoney = 0
+    local success = false
+
+    local accounts = {}
+
+    if accountType == "bank" then
+        accounts = { "bank", "cash" } -- prioridad bank, fallback cash
+    else
+        accounts = { "cash", "bank" } -- prioridad cash, fallback bank
+    end
+
+    for _, acc in ipairs(accounts) do
+        if FrameWork == "esx" then
+            if acc == "bank" then
+                currentMoney = xPlayer.getAccount('bank').money
+                if currentMoney >= price then
+                    xPlayer.removeAccountMoney('bank', price)
+                    TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
+                        account.addMoney(price)
+                    end)
+                    success = true
+                    break
+                end
+            else -- cash
+                currentMoney = xPlayer.getMoney()
+                if currentMoney >= price then
+                    xPlayer.removeMoney(price)
+                    TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
+                        account.addMoney(price)
+                    end)
+                    success = true
+                    break
+                end
+            end
+        elseif FrameWork == "qb" then
+            if acc == "bank" then
+                currentMoney = xPlayer.PlayerData.money["bank"]
+                if currentMoney >= price then
+                    xPlayer.Functions.RemoveMoney('bank', price, 'Bill')
+                    exports['qb-management']:AddMoney("ambulance", price)
+                    success = true
+                    break
+                end
+            else -- cash
+                currentMoney = xPlayer.PlayerData.money["cash"]
+                if currentMoney >= price then
+                    xPlayer.Functions.RemoveMoney('cash', price, 'Bill')
+                    exports['qb-management']:AddMoney("ambulance", price)
+                    success = true
+                    break
+                end
+            end
+        end
+    end
+
+    return success, currentMoney
+end
+
 RegisterServerEvent('muhaddil_insurances:insurance:buy')
 AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType, targetPlayerId)
     local source = source
@@ -38,15 +129,16 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
     local type = data.type
     local duration = data.duration
     local price = data.price
+    print(price)
     local expiration = os.time() + (duration * 24 * 60 * 60)
 
     local playerId = targetPlayerId or source
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         xPlayer = ESX.GetPlayerFromId(playerId)
         identifier = xPlayer.identifier
         playerName = xPlayer.getName() or xPlayer.getIdentifier()
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         xPlayer = QBCore.Functions.GetPlayer(playerId)
         identifier = xPlayer.PlayerData.citizenid
         playerName = (xPlayer.PlayerData.charinfo.firstname and xPlayer.PlayerData.charinfo.lastname) and
@@ -54,48 +146,7 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
             xPlayer.PlayerData.citizenid
     end
 
-    -- Money checking
-    if accountType == 'bank' then
-        if Config.FrameWork == "esx" then
-            currentMoney = xPlayer.getAccount('bank').money
-            hasEnoughMoney = currentMoney >= price
-
-            if hasEnoughMoney then
-                xPlayer.removeAccountMoney('bank', price)
-                TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
-                    account.addMoney(price)
-                end)
-            end
-        elseif Config.FrameWork == "qb" then
-            currentMoney = xPlayer.PlayerData.money["bank"]
-            hasEnoughMoney = currentMoney >= price
-
-            if hasEnoughMoney then
-                xPlayer.Functions.RemoveMoney('bank', price, 'Bill')
-                exports['qb-management']:AddMoney("ambulance", price)
-            end
-        end
-    else
-        if Config.FrameWork == "esx" then
-            currentMoney = xPlayer.getMoney()
-            hasEnoughMoney = currentMoney >= price
-
-            if hasEnoughMoney then
-                xPlayer.removeMoney(price)
-                TriggerEvent('esx_addonaccount:getSharedAccount', 'society_ambulance', function(account)
-                    account.addMoney(price)
-                end)
-            end
-        elseif Config.FrameWork == "qb" then
-            currentMoney = xPlayer.PlayerData.money["cash"]
-            hasEnoughMoney = currentMoney >= price
-
-            if hasEnoughMoney then
-                xPlayer.Functions.RemoveMoney('cash', price, 'Bill')
-                exports['qb-management']:AddMoney("ambulance", price)
-            end
-        end
-    end
+    hasEnoughMoney, currentMoney = tryPay(xPlayer, accountType, price)
 
     -- If the player has enough money, proceed with insurance purchase
     if hasEnoughMoney then
@@ -107,7 +158,12 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                 ['@expiration'] = expiration
             }, function(rowsChanged)
                 if rowsChanged > 0 then
-                    local successMessage = "El jugador **" .. playerName .. "** (ID: " .. playerId .. ") ha comprado un seguro de tipo **" .. type .. "** por **" .. duration .. "** días. Precio: $" .. price
+                    local successMessage = "El jugador **" ..
+                        playerName ..
+                        "** (ID: " ..
+                        playerId ..
+                        ") ha comprado un seguro de tipo **" ..
+                        type .. "** por **" .. duration .. "** días. Precio: $" .. price
 
                     TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
                         'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
@@ -132,12 +188,12 @@ local function getInsurance(playerId, cb)
     local Player
     local identifier
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         Player = ESX.GetPlayerFromId(playerId)
         if Player then
             identifier = Player.getIdentifier()
         end
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         Player = QBCore.Functions.GetPlayer(playerId)
         if Player then
             identifier = Player.PlayerData.license
@@ -161,7 +217,7 @@ local function getInsurance(playerId, cb)
                     local timeLeft = expiration - currentTime
                     local insuranceData = {
                         type = result[1].type,
-                        timeLeft = formatTime(timeLeft),
+                        timeRemaining = timeLeft,
                         expiration = expiration
                     }
                     cb(insuranceData)
@@ -176,11 +232,11 @@ local function getInsurance(playerId, cb)
     end
 end
 
-if Config.FrameWork == "esx" then
+if FrameWork == "esx" then
     ESX.RegisterServerCallback('muhaddil_insurances:insurance:getInsurance', function(source, cb, playerId)
         getInsurance(playerId, cb)
     end)
-elseif Config.FrameWork == "qb" then
+elseif FrameWork == "qb" then
     QBCore.Functions.CreateCallback('muhaddil_insurances:insurance:getInsurance', function(source, cb, playerId)
         getInsurance(playerId, cb)
     end)
@@ -190,12 +246,12 @@ local function onPlayerLoaded(playerId)
     local Player
     local identifier
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         Player = ESX.GetPlayerFromId(playerId)
         if Player then
             identifier = Player.getIdentifier()
         end
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         Player = QBCore.Functions.GetPlayer(playerId)
         if Player then
             identifier = Player.PlayerData.license
@@ -221,11 +277,11 @@ local function onPlayerLoaded(playerId)
     end
 end
 
-if Config.FrameWork == "esx" then
+if FrameWork == "esx" then
     AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
         onPlayerLoaded(playerId)
     end)
-elseif Config.FrameWork == "qb" then
+elseif FrameWork == "qb" then
     AddEventHandler('QBCore:Client:OnPlayerLoaded', function(playerId)
         onPlayerLoaded(playerId)
     end)
@@ -289,143 +345,6 @@ if Config.AutoRunSQL then
     end
 end
 
-local function daysAgo(dateStr)
-    local year, month, day = dateStr:match("(%d+)-(%d+)-(%d+)")
-    local releaseTime = os.time({ year = year, month = month, day = day })
-    local currentTime = os.time()
-    local difference = os.difftime(currentTime, releaseTime) / (60 * 60 * 24) -- Diferencia en días
-    return math.floor(difference)
-end
-
-local function formatDate(releaseDate)
-    local days = daysAgo(releaseDate)
-    if days < 1 then
-        return "Today"
-    elseif days == 1 then
-        return "Yesterday"
-    else
-        return days .. " days ago"
-    end
-end
-
-local function shortenTexts(text)
-    local maxLength = 35
-    if #text > maxLength then
-        local shortened = text:sub(1, maxLength - 3) .. '...'
-        return shortened
-    else
-        return text
-    end
-end
-
-local function printWithColor(message, colorCode)
-    if type(message) ~= "string" then
-        message = tostring(message)
-    end
-    print('\27[' .. colorCode .. 'm' .. message .. '\27[0m')
-end
-
-local function printCentered(text, length, colorCode)
-    local padding = math.max(length - #text - 2, 0)
-    local leftPadding = math.floor(padding / 2)
-    local rightPadding = padding - leftPadding
-    printWithColor('│' .. string.rep(' ', leftPadding) .. text .. string.rep(' ', rightPadding) .. '│', colorCode)
-end
-
-local function printWrapped(text, length, colorCode)
-    if type(text) ~= "string" then
-        text = tostring(text)
-    end
-
-    local maxLength = length - 2
-    local pos = 1
-
-    while pos <= #text do
-        local endPos = pos + maxLength - 1
-        if endPos > #text then
-            endPos = #text
-        else
-            local spaceIndex = text:sub(pos, endPos):match('.*%s') or maxLength
-            endPos = pos + spaceIndex - 1
-        end
-
-        local line = text:sub(pos, endPos)
-        local paddedLine = line .. string.rep(' ', maxLength - #line)
-
-        printWithColor('│' .. paddedLine .. '│', colorCode)
-
-        pos = endPos + 1
-    end
-end
-
-local versionData = {
-    latestVersion = nil,
-    releaseDate = nil,
-    notes = nil,
-    downloadUrl = nil
-}
-
-local isUpdateAvailable = false
-
-function fetchVersionData()
-    PerformHttpRequest(githubApiUrl, function(statusCode, response, headers)
-        if statusCode == 200 then
-            local data = json.decode(response)
-
-            if data and data.tag_name then
-                versionData.latestVersion = data.tag_name
-                versionData.releaseDate = formatDate(data.published_at or "Unknown")
-                versionData.notes = shortenTexts(data.body or "No notes available")
-                versionData.downloadUrl = shortenTexts(data.html_url or "No download link available")
-                displayVersionData()
-                isUpdateAvailable = (versionData.latestVersion ~= currentVersion)
-            else
-                printWithColor('[Muhaddil_Insurances] - Error: Invalid JSON structure.', '31') -- Red
-            end
-        else
-            printWithColor('[Muhaddil_Insurances] - Failed to fetch version data. Status code: ' .. statusCode, '31') -- Red
-        end
-    end, 'GET')
-end
-
-function displayVersionData()
-    local boxWidth = 54
-    local boxWidthNotes = 54
-
-    if versionData.latestVersion then
-        if versionData.latestVersion ~= currentVersion then
-            print('╭────────────────────────────────────────────────────╮')
-            printCentered('[Muhaddil_Insurances] - New Version Available', boxWidth, '34') -- Blue
-            printWrapped('Current version: ' .. currentVersion, boxWidth, '32')            -- Green
-            printWrapped('Latest version: ' .. versionData.latestVersion, boxWidth, '33')  -- Yellow
-            printWrapped('Released: ' .. versionData.releaseDate, boxWidth, '33')          -- Yellow
-            printWrapped('Notes: ' .. versionData.notes, boxWidthNotes, '33')              -- Yellow
-            printWrapped('Download: ' .. versionData.downloadUrl, boxWidth, '32')          -- Green
-            print('╰────────────────────────────────────────────────────╯')
-        else
-            print('╭────────────────────────────────────────────────────╮')
-            printWrapped('[Muhaddil_Insurances] - Up-to-date', boxWidth, '32')  -- Green
-            printWrapped('Current version: ' .. currentVersion, boxWidth, '32') -- Green
-            print('╰────────────────────────────────────────────────────╯')
-        end
-    else
-        printWithColor('[Muhaddil_Insurances] - No version data available.', '31') -- Red
-    end
-end
-
-Citizen.CreateThread(function()
-    if Config.AutoVersionChecker then
-        fetchVersionData()
-    end
-end)
-
-local updateCronExpression = getCronExpression(30)
-lib.cron.new(updateCronExpression, function()
-    if isUpdateAvailable then
-        displayVersionData()
-    end
-end)
-
 exports("hasValidInsurance", function(playerId)
     local Player
     local identifier
@@ -434,12 +353,12 @@ exports("hasValidInsurance", function(playerId)
         playerId = source
     end
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         Player = ESX.GetPlayerFromId(playerId)
         if Player then
             identifier = Player.getIdentifier()
         end
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         Player = QBCore.Functions.GetPlayer(playerId)
         if Player then
             identifier = Player.PlayerData.license
@@ -479,7 +398,7 @@ end)
 lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)
     local playerData = { firstname = "Desconocido", lastname = "" }
 
-    if Config.FrameWork == "esx" then
+    if FrameWork == "esx" then
         local xPlayer = ESX.GetPlayerFromId(targetPlayerServerId)
         if not xPlayer then return playerData end
 
@@ -491,7 +410,7 @@ lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)
             playerData.firstname = result[1].firstname or "Unknown"
             playerData.lastname = result[1].lastname or ""
         end
-    elseif Config.FrameWork == "qb" then
+    elseif FrameWork == "qb" then
         local player = QBCore.Functions.GetPlayer(targetPlayerServerId)
         if not player then return playerData end
 
@@ -506,4 +425,10 @@ lib.callback.register('getPlayerNameInGame', function(targetPlayerServerId)
     end
 
     return playerData
+end)
+
+lib.callback.register('muhaddil_insurances:getLocaleData', function(source)
+    local resourceName = GetCurrentResourceName()
+    local locale = json.decode(LoadResourceFile(resourceName, ('locales/%s.json'):format(Config.NUILocale)))
+    return locale
 end)

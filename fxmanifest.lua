@@ -3,18 +3,27 @@ game 'gta5'
 lua54 'yes'
 
 author 'Muhaddil'
-description 'Simple Medical Insurance Script'
-version 'v1.0.122'
+description 'Medical Insurance Script'
+version 'v2.0.0'
 
 shared_script 'config.lua'
-client_script 'client.lua'
+client_script 'client/*'
 server_script {
-    '@mysql-async/lib/MySQL.lua',
-    'server.lua'
+    '@oxmysql/lib/MySQL.lua',
+    'server/*'
 }
 
 shared_script '@ox_lib/init.lua'
 
 files {
-    'locales/*.json'
+    'locales/*.json',
+    'web/build/index.html',
+    'web/build/**/*'
+}
+
+ui_page 'web/build/index.html'
+
+dependencies {
+    'ox_lib',
+    'oxmysql'
 }
