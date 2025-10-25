@@ -29,8 +29,10 @@ export function SellInsurance({ playerJob, onClose, insuranceTypes, t }: Props) 
   })
 
   useEffect(() => {
-    localStorage.setItem("theme", theme)
-    document.documentElement.setAttribute("data-theme", theme)
+    if (typeof window !== "undefined" && "localStorage" in window) {
+      localStorage.setItem("theme", theme)
+      document.documentElement.setAttribute("data-theme", theme)
+    }
   }, [theme])
 
   useEffect(() => {

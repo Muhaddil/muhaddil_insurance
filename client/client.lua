@@ -286,11 +286,19 @@ AddEventHandler('muhaddil_insurances:checkInsurance', function()
     end
 end)
 
+function sendLocaleData()
+    local localeData = lib.callback.await('muhaddil_insurances:getLocaleData', false)
+
+    SendNUIMessage({
+        action = "setLocale",
+        localeData = localeData
+    })
+end
+
 function OpenInsuranceNUI(insuranceData)
     local canSellDiscount = CanSellDiscountInsurance()
     local canSellCustom = CanSellCustomInsurance()
-    
-    local localeData = lib.callback.await('muhaddil_insurances:getLocaleData', false)
+    sendLocaleData()
     
     SetNuiFocus(true, true)
     SendNUIMessage({
@@ -305,11 +313,6 @@ function OpenInsuranceNUI(insuranceData)
                 discountPercentage = Config.DiscountPercentage
             }
         }
-    })
-    
-    SendNUIMessage({
-        action = "setLocale",
-        localeData = localeData
     })
 end
 
@@ -544,3 +547,5 @@ exports("hasValidInsurance", function(playerId)
 
     return Citizen.Await(promise)
 end)
+
+sendLocaleData()
