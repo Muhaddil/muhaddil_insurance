@@ -31,6 +31,19 @@ local function shortenTexts(text)
     end
 end
 
+local function getCronExpression(intervalInMinutes)
+    if intervalInMinutes < 1 then
+        error('El intervalo debe ser un valor positivo.')
+    elseif intervalInMinutes <= 59 then
+        return string.format("*/%d * * * *", intervalInMinutes)
+    elseif intervalInMinutes % 60 == 0 then
+        local intervalInHours = intervalInMinutes / 60
+        return string.format("0 */%d * * *", intervalInHours)
+    else
+        error('Intervalos mayores a una hora deben ser múltiplos de 60.')
+    end
+end
+
 local function printWithColor(message, colorCode)
     if type(message) ~= "string" then
         message = tostring(message)
@@ -43,6 +56,13 @@ local function printCentered(text, length, colorCode)
     local leftPadding = math.floor(padding / 2)
     local rightPadding = padding - leftPadding
     printWithColor('│' .. string.rep(' ', leftPadding) .. text .. string.rep(' ', rightPadding) .. '│', colorCode)
+end
+
+local function printClickableLink(label, url, length, colorCode)
+    local clickable = '\27]8;;' .. url .. '\27\\' .. label .. '\27]8;;\27\\'
+    local maxLength = length - 2
+    local paddedLine = clickable .. string.rep(' ', math.max(0, maxLength - #label))
+    printWithColor('│' .. paddedLine .. '│', colorCode)
 end
 
 local function printWrapped(text, length, colorCode)
@@ -90,13 +110,14 @@ function fetchVersionData()
                 versionData.releaseDate = formatDate(data.published_at or "Unknown")
                 versionData.notes = shortenTexts(data.body or "No notes available")
                 versionData.downloadUrl = shortenTexts(data.html_url or "No download link available")
+                versionData.downloadUrlFull = data.html_url or ""
                 displayVersionData()
                 isUpdateAvailable = (versionData.latestVersion ~= currentVersion)
             else
-                printWithColor('[Muhaddil_Insurances] - Error: Invalid JSON structure.', '31') -- Red
+                printWithColor('[muhaddil_insurance] - Error: Invalid JSON structure.', '31') -- Red
             end
         else
-            printWithColor('[Muhaddil_Insurances] - Failed to fetch version data. Status code: ' .. statusCode, '31') -- Red
+            printWithColor('[muhaddil_insurance] - Failed to fetch version data. Status code: ' .. statusCode, '31') -- Red
         end
     end, 'GET')
 end
@@ -108,21 +129,21 @@ function displayVersionData()
     if versionData.latestVersion then
         if versionData.latestVersion ~= currentVersion then
             print('╭────────────────────────────────────────────────────╮')
-            printCentered('[Muhaddil_Insurances] - New Version Available', boxWidth, '34') -- Blue
-            printWrapped('Current version: ' .. currentVersion, boxWidth, '32')            -- Green
-            printWrapped('Latest version: ' .. versionData.latestVersion, boxWidth, '33')  -- Yellow
-            printWrapped('Released: ' .. versionData.releaseDate, boxWidth, '33')          -- Yellow
-            printWrapped('Notes: ' .. versionData.notes, boxWidthNotes, '33')              -- Yellow
-            printWrapped('Download: ' .. versionData.downloadUrl, boxWidth, '32')          -- Green
+            printCentered('[muhaddil_insurance] - New Version Available', boxWidth, '34')                            -- Blue
+            printWrapped('Current version: ' .. currentVersion, boxWidth, '32')                                      -- Green
+            printWrapped('Latest version: ' .. versionData.latestVersion, boxWidth, '33')                            -- Yellow
+            printWrapped('Released: ' .. versionData.releaseDate, boxWidth, '33')                                    -- Yellow
+            printWrapped('Notes: ' .. versionData.notes, boxWidthNotes, '33')                                        -- Yellow
+            printClickableLink('Download: ' .. versionData.downloadUrl, versionData.downloadUrlFull, boxWidth, '32') -- Green
             print('╰────────────────────────────────────────────────────╯')
         else
             print('╭────────────────────────────────────────────────────╮')
-            printWrapped('[Muhaddil_Insurances] - Up-to-date', boxWidth, '32')  -- Green
+            printWrapped('[muhaddil_insurance] - Up-to-date', boxWidth, '32')   -- Green
             printWrapped('Current version: ' .. currentVersion, boxWidth, '32') -- Green
             print('╰────────────────────────────────────────────────────╯')
         end
     else
-        printWithColor('[Muhaddil_Insurances] - No version data available.', '31') -- Red
+        printWithColor('[muhaddil_insurance] - No version data available.', '31') -- Red
     end
 end
 
@@ -131,19 +152,6 @@ Citizen.CreateThread(function()
         fetchVersionData()
     end
 end)
-
-local function getCronExpression(intervalInMinutes)
-    if intervalInMinutes < 1 then
-        error('El intervalo debe ser un valor positivo.')
-    elseif intervalInMinutes <= 59 then
-        return string.format("*/%d * * * *", intervalInMinutes)
-    elseif intervalInMinutes % 60 == 0 then
-        local intervalInHours = intervalInMinutes / 60
-        return string.format("0 */%d * * *", intervalInHours)
-    else
-        error('Intervalos mayores a una hora deben ser múltiplos de 60.')
-    end
-end
 
 local updateCronExpression = getCronExpression(30)
 lib.cron.new(updateCronExpression, function()

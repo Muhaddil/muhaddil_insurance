@@ -5,6 +5,7 @@ import { Shield, Users, DollarSign, Clock, X, RefreshCw } from "lucide-react"
 import type { NearbyPlayer } from "../types/insurance"
 import { fetchNui } from "../utils/fetchNui"
 import { ThemeSelector, type Theme } from "./ThemeSelector"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./Select"
 
 interface Props {
   playerJob: string
@@ -144,15 +145,20 @@ export function SellInsurance({ playerJob, onClose, insuranceTypes, t }: Props) 
                   <Shield size={14} />
                   {t("type")}
                 </label>
-                <select value={insuranceType} onChange={(e) => setInsuranceType(e.target.value)}>
-                  {Object.entries(insuranceTypes)
-                    .sort(([, a], [, b]) => a.duration - b.duration)
-                    .map(([key, value]) => (
-                      <option key={key} value={key}>
-                        {value.label} {t("for")} {value.duration} {value.duration === 1 ? t("day") : t("days")}
-                      </option>
-                    ))}
-                </select>
+                <Select value={insuranceType} onValueChange={(value) => setInsuranceType(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(insuranceTypes)
+                      .sort(([, a], [, b]) => a.duration - b.duration)
+                      .map(([key, value]) => (
+                        <SelectItem key={key} value={key}>
+                          {value.label} {t("for")} {value.duration} {value.duration === 1 ? t("day") : t("days")}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="form-group">
