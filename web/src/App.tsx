@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react"
 import { InsuranceMain } from "./components/InsuranceMain"
 import { SellInsurance } from "./components/SellInsurance"
+import { InsuranceDocument } from "./components/InsuranceDocument"
 import { useNuiEvent } from "./hooks/useNuiEvent"
 import { useExitListener } from "./hooks/useExitListener"
 import { useLocale } from "./hooks/useLocale"
@@ -24,13 +25,14 @@ debugData([
 function App() {
   const [isVisible, setIsVisible] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
-  const [view, setView] = useState<"main" | "sell">("main")
+  const [view, setView] = useState<"main" | "sell" | "document">("main")
   const [insuranceData, setInsuranceData] = useState<InsuranceData | null>(null)
   const [canSellDiscount, setCanSellDiscount] = useState(false)
   const [playerJob, setPlayerJob] = useState("")
   const [insuranceTypes, setInsuranceTypes] = useState<Record<string, { label: string, price: number, duration: number }>>({})
   const [discountPercentage, setDiscountPercentage] = useState("")
   const { t } = useLocale()
+  const [documentData, setDocumentData] = useState<any>(null)
 
   const handleClose = useCallback(() => {
     setIsClosing(true)
@@ -64,11 +66,24 @@ function App() {
     setInsuranceTypes(config.insuranceTypes || {})
   })
 
+  useNuiEvent("openDocument", (event: any) => {
+    setIsVisible(true)
+    setIsClosing(false)
+    setView("document")
+    setDocumentData(event.data)
+  })
+
   if (!isVisible) return null
 
   return (
     <div className={`insurance-container ${isClosing ? 'closing' : ''}`}>
-      {view === "main" ? (
+      {view === "document" ? (
+        <InsuranceDocument
+          data={documentData}
+          onClose={handleClose}
+          t={t}
+        />
+      ) : view === "main" ? (
         <InsuranceMain
           insuranceData={insuranceData}
           canSellDiscount={canSellDiscount}

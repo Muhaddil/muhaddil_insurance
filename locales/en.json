@@ -58,5 +58,28 @@
   "day": "day",
   "for": "for",
   "coverage_included": "Coverage included",
-  "theme": "Theme"
+  "theme": "Theme",
+
+  "insurance_purchased": "You have purchased a %s insurance for %d days.",
+  "insurance_error": "There was an error processing your insurance.",
+  "not_enough_money": "You do not have enough money to purchase this insurance.",
+  "document_title": "🏥 Insurance Certificate",
+  "document_body": "**Policyholder:** %s\n**Plan:** %s\n**Duration:** %d days\n**Amount Paid:** $%d\n**Valid Until:** %s\n\nThis document certifies that the above individual holds an active medical insurance policy.",
+  "document_invalid": "This document appears to be invalid or corrupted.",
+  "document_subtitle": "Official Medical Insurance Policy",
+  "document_holder": "Policyholder",
+  "document_valid_until": "Valid Until",
+  "document_issued_at": "Issued At",
+  "document_footer": "This document certifies an active medical insurance policy.",
+  "document_status_valid": "ACTIVE",
+  "document_status_warning": "EXPIRING SOON",
+  "document_status_critical": "EXPIRES TODAY",
+  "document_status_expired": "EXPIRED",
+  "document_remaining": "remaining",
+  "document_expires_soon": "< 1h remaining",
+  "document_no_longer_valid": "No longer valid",
+  "document_certified": "CERTIFIED",
+
+  "access_denied_title": "Access Denied",
+  "access_denied_message": "You don't have the right job to access this feature."
 }

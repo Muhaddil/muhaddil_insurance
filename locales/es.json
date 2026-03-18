@@ -58,5 +58,28 @@
   "day": "día",
   "for": "por",
   "coverage_included": "Cobertura incluida",
-  "theme": "Tema"
+  "theme": "Tema",
+
+  "insurance_purchased": "Has comprado un seguro %s por %d días.",
+  "insurance_error": "Hubo un error al contratar el seguro.",
+  "not_enough_money": "No tienes suficiente dinero para comprar este seguro.",
+  "document_title": "Certificado de Seguro",
+  "document_body": "**Asegurado:** %s\n**Plan:** %s\n**Duración:** %d días\n**Importe pagado:** $%d\n**Válido hasta:** %s\n**Emitido el:** %s",
+  "document_invalid": "Este documento parece ser inválido o estar corrupto.",
+  "document_subtitle": "Póliza Oficial de Seguro Médico",
+  "document_holder": "Asegurado",
+  "document_valid_until": "Válido Hasta",
+  "document_issued_at": "Emitido el",
+  "document_footer": "Este documento certifica una póliza de seguro médico activa.",
+  "document_status_valid": "ACTIVO",
+  "document_status_warning": "EXPIRA PRONTO",
+  "document_status_critical": "EXPIRA HOY",
+  "document_status_expired": "EXPIRADO",
+  "document_remaining": "restante",
+  "document_expires_soon": "< 1h restante",
+  "document_no_longer_valid": "Ya no es válido",
+  "document_certified": "CERTIFICADO",
+
+  "access_denied_title": "Acceso Denegado",
+  "access_denied_message": "No tienes el trabajo requerido para acceder a esta función."
 }

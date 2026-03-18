@@ -16,6 +16,8 @@ if Config.FrameWork == "auto" then
     elseif GetResourceState('qb-core') == 'started' then
         QBCore = exports['qb-core']:GetCoreObject()
         FrameWork = 'qb'
+    else
+        print('===NO SUPPORTED FRAMEWORK FOUND===')
     end
 elseif Config.FrameWork == "esx" and GetResourceState('es_extended') == 'started' then
     if ESXVer == 'new' then
@@ -65,6 +67,17 @@ end
 RegisterNetEvent("muhaddil_insurances:Notify")
 AddEventHandler("muhaddil_insurances:Notify", function(msgtitle, msg, time, type)
     Notify(msgtitle, msg, time, type)
+end)
+
+RegisterNetEvent('muhaddil_insurances:NotifyLocale')
+AddEventHandler('muhaddil_insurances:NotifyLocale', function(titleKey, msgKey, time, type, args)
+    local title = locale(titleKey)
+    local msg = locale(msgKey)
+
+    if args and #args > 0 then
+        msg = string.format(msg, table.unpack(args))
+    end
+    Notify(title, msg, time, type)
 end)
 
 function CanAccessInsurance()
@@ -244,7 +257,8 @@ RegisterCommand('checkInsurance', function()
             if hasAccess then
                 TriggerEvent('muhaddil_insurances:checkInsurance')
             else
-                Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+                Notify(locale('access_denied_title'), locale('access_denied_message'), Config.NotificationDuration,
+                    "error")
             end
         end, playerId)
     elseif FrameWork == "qb" then
@@ -262,7 +276,7 @@ RegisterCommand('checkInsurance', function()
         if hasAccess then
             TriggerEvent('muhaddil_insurances:checkInsurance')
         else
-            Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+            Notify(locale('access_denied_title'), locale('access_denied_message'), Config.NotificationDuration, "error")
         end
     end
 end)
@@ -282,7 +296,7 @@ AddEventHandler('muhaddil_insurances:checkInsurance', function()
             end, playerId)
         end
     else
-        Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+        Notify(locale('access_denied_title'), locale('access_denied_message'), Config.NotificationDuration, "error")
     end
 end)
 
@@ -299,7 +313,7 @@ function OpenInsuranceNUI(insuranceData)
     local canSellDiscount = CanSellDiscountInsurance()
     local canSellCustom = CanSellCustomInsurance()
     sendLocaleData()
-    
+
     SetNuiFocus(true, true)
     SendNUIMessage({
         action = "openInsurance",
@@ -514,7 +528,7 @@ function validateSellAccess(jobName, jobGrade)
     if hasAccess then
         OpenSellInsuranceNUI()
     else
-        Notify(Config.AccessDeniedTitle, Config.AccessDeniedMessage, Config.NotificationDuration, "error")
+        Notify(locale('access_denied_title'), locale('access_denied_message'), Config.NotificationDuration, "error")
     end
 end
 
@@ -549,3 +563,36 @@ exports("hasValidInsurance", function(playerId)
 end)
 
 sendLocaleData()
+
+exports('useInsuranceDocument', function(data, metadata, playerId)
+    -- ox_inventory no pasa metadata correctamente desde el export,
+    -- así que la pedimos directamente del slot
+    local slot = data.slot
+
+    if not slot then
+        lib.notify({ title = locale('insurance_system'), description = locale('document_invalid'), type = 'error' })
+        return
+    end
+
+    local slotMetadata = lib.callback.await('muhaddil_insurances:getDocumentMetadata', false, slot)
+
+    if not slotMetadata or not slotMetadata.type then
+        lib.notify({ title = locale('insurance_system'), description = locale('document_invalid'), type = 'error' })
+        return
+    end
+
+    sendLocaleData()
+    SetNuiFocus(true, true)
+    SendNUIMessage({
+        action = "openDocument",
+        data = {
+            playerName     = slotMetadata.playerName or '—',
+            type           = slotMetadata.type,
+            duration       = slotMetadata.duration,
+            price          = slotMetadata.price,
+            expiration     = slotMetadata.expiration,
+            expirationDate = slotMetadata.expirationDate or '—',
+            issuedAt       = slotMetadata.issuedAt or '—',
+        }
+    })
+end)

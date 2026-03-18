@@ -129,7 +129,7 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
     local type = data.type
     local duration = data.duration
     local price = data.price
-    print(price)
+
     local expiration = os.time() + (duration * 24 * 60 * 60)
 
     local playerId = targetPlayerId or source
@@ -165,8 +165,27 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                         ") ha comprado un seguro de tipo **" ..
                         type .. "** por **" .. duration .. "** días. Precio: $" .. price
 
-                    TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
-                        'Has comprado un seguro: ' .. type .. ' por ' .. duration .. ' días', 5000, 'success')
+                    TriggerClientEvent('muhaddil_insurances:NotifyLocale', playerId, 'insurance_system',
+                        'insurance_purchased', 5000, 'success', { type, duration })
+
+                    if Config.GiveInsuranceDocument then
+                        local expirationDate = os.date('%Y-%m-%d', expiration)
+                        local success, response = exports.ox_inventory:AddItem(playerId, Config.InsuranceDocumentItem, 1,
+                            {
+                                playerName     = playerName,
+                                type           = type,
+                                duration       = duration,
+                                price          = price,
+                                expiration     = expiration,
+                                expirationDate = expirationDate,
+                                issuedAt       = os.date('%Y-%m-%d %H:%M:%S'),
+                            })
+
+                        if not success then
+                            print('^1[muhaddil_insurances] Error al dar documento de seguro: ' ..
+                                tostring(response) .. '^0')
+                        end
+                    end
 
                     if not Config.UseOXLogger then
                         discordWebHookSender("Compra de Seguro", successMessage, 3066993)
@@ -174,13 +193,13 @@ AddEventHandler('muhaddil_insurances:insurance:buy', function(data, accountType,
                         lib.logger(identifier, 'muhaddil_insurances:insurance:buy', successMessage)
                     end
                 else
-                    TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
-                        'Hubo un error al contratar el seguro', 5000, 'error')
+                    TriggerClientEvent('muhaddil_insurances:NotifyLocale', playerId, 'insurance_system',
+                        'not_enough_money', 5000, 'error')
                 end
             end)
     else
-        TriggerClientEvent('muhaddil_insurances:Notify', playerId, 'Seguro',
-            'No tienes suficiente dinero para comprar este seguro', 5000, 'error')
+        TriggerClientEvent('muhaddil_insurances:NotifyLocale', playerId, 'insurance_system',
+            'not_enough_money', 5000, 'error')
     end
 end)
 
@@ -431,4 +450,14 @@ lib.callback.register('muhaddil_insurances:getLocaleData', function(source)
     local resourceName = GetCurrentResourceName()
     local locale = json.decode(LoadResourceFile(resourceName, ('locales/%s.json'):format(Config.NUILocale)))
     return locale
+end)
+
+lib.callback.register('muhaddil_insurances:getDocumentMetadata', function(source, slot)
+    local slotData = exports.ox_inventory:GetSlot(source, slot)
+
+    if not slotData or slotData.name ~= Config.InsuranceDocumentItem then
+        return nil
+    end
+
+    return slotData.metadata
 end)
